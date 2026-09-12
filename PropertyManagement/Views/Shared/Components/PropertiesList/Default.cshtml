@@ -28,6 +28,7 @@
                 <td>@property.State</td>
                 <td>@property.ZipCode</td>
                 <td class="text-end">
+                    <a asp-controller="Units" asp-action="Index" asp-route-propertyId="@property.Id" class="btn btn-sm btn-outline-primary">Units</a>
                     <a href="#" class="btn btn-sm btn-outline-secondary" data-modal-url="/Properties/Edit/@property.Id">Edit</a>
                     <a href="#" class="btn btn-sm btn-outline-danger" data-modal-url="/Properties/Delete/@property.Id">Remove</a>
                 </td>

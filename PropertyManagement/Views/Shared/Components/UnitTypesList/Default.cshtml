@@ -1,0 +1,39 @@
+@using PropertyManagement.Domain.Entities
+@model List<UnitType>
+
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Status</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        @if (Model.Count == 0)
+        {
+            <tr>
+                <td colspan="3" class="text-center text-muted">No unit types yet.</td>
+            </tr>
+        }
+        @foreach (var unitType in Model)
+        {
+            <tr>
+                <td>@unitType.Name</td>
+                <td>
+                    @if (unitType.IsActive)
+                    {
+                        <span class="badge text-bg-success">Active</span>
+                    }
+                    else
+                    {
+                        <span class="badge text-bg-secondary">Inactive</span>
+                    }
+                </td>
+                <td class="text-end">
+                    <a href="#" class="btn btn-sm btn-outline-secondary" data-modal-url="/UnitTypes/Edit/@unitType.Id">Edit</a>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>

@@ -1,0 +1,17 @@
+@{
+    Layout = "_PortalLayout";
+    ViewData["Title"] = "Units";
+    var propertyId = ViewData["PropertyId"];
+    var propertyName = ViewData["PropertyName"];
+}
+
+<p><a asp-controller="Properties" asp-action="Index">&larr; Back to Properties</a></p>
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1>Units — @propertyName</h1>
+    <a href="#" class="btn btn-primary" data-modal-url="/Units/Create?propertyId=@propertyId">Add Unit</a>
+</div>
+
+<div id="units-list">
+    @await Component.InvokeAsync("UnitsList", new { propertyId })
+</div>
