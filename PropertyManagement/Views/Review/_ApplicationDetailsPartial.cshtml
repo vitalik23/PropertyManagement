@@ -1,0 +1,19 @@
+@using PropertyManagement.Domain.Enums
+@using PropertyManagement.Models.ReviewViewModels
+@model ApplicationDetailsViewModel
+
+<p>
+    <strong>Applicant:</strong> @Model.ApplicantEmail
+    &nbsp;|&nbsp;
+    <strong>Status:</strong> @Model.Status
+</p>
+
+@if (Model.Status == ApplicationStatus.Submitted)
+{
+    <a href="#" class="btn btn-primary mb-3" data-modal-url="/Review/Review/@Model.Id">Review</a>
+}
+
+@await Html.PartialAsync("~/Views/Applications/Sections/_SummarySection.cshtml", Model.Wizard)
+
+<h4 class="mt-4">Status History</h4>
+@await Html.PartialAsync("_StatusHistoryPartial", Model.History)

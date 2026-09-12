@@ -1,0 +1,14 @@
+@using PropertyManagement.Models.ReviewViewModels
+@model ApplicationDetailsViewModel
+@{
+    Layout = "_PortalLayout";
+    ViewData["Title"] = "Application Details";
+}
+
+<p><a asp-controller="Review" asp-action="Index">&larr; Back to Applications</a></p>
+
+<h1>Application — @Model.UnitDisplay</h1>
+
+<div id="application-details">
+    @await Html.PartialAsync("_ApplicationDetailsPartial", Model)
+</div>

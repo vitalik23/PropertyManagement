@@ -1,0 +1,42 @@
+@using PropertyManagement.Domain.Entities
+@using PropertyManagement.Domain.Enums
+@model List<RentalApplication>
+@{
+    Layout = "_PortalLayout";
+    ViewData["Title"] = "My Applications";
+    var properties = (List<Property>)ViewBag.Properties;
+    var selectedStatus = (ApplicationStatus?)ViewBag.SelectedStatus;
+    var selectedPropertyId = (Guid?)ViewBag.SelectedPropertyId;
+}
+
+<h1>My Applications</h1>
+
+<form method="get" asp-controller="Applications" asp-action="Index" class="row row-cols-auto g-2 align-items-end mb-3">
+    <div class="col">
+        <label class="form-label">Status</label>
+        <select name="status" class="form-select">
+            <option value="">All</option>
+            @foreach (var value in Enum.GetValues<ApplicationStatus>())
+            {
+                <option value="@value" selected="@(selectedStatus == value)">@value</option>
+            }
+        </select>
+    </div>
+    <div class="col">
+        <label class="form-label">Property</label>
+        <select name="propertyId" class="form-select">
+            <option value="">All</option>
+            @foreach (var property in properties)
+            {
+                <option value="@property.Id" selected="@(selectedPropertyId == property.Id)">@property.Name</option>
+            }
+        </select>
+    </div>
+    <div class="col">
+        <button type="submit" class="btn btn-secondary">Filter</button>
+    </div>
+</form>
+
+<div id="applications-list">
+    @await Html.PartialAsync("_ApplicationsListPartial", Model)
+</div>

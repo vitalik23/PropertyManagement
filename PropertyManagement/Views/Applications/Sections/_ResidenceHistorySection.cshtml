@@ -1,0 +1,8 @@
+@using PropertyManagement.Models.ApplicationViewModels
+@model RentalApplicationWizardViewModel
+
+<h4>Residence History</h4>
+
+<div id="residence-list">
+    @await Component.InvokeAsync("ResidenceList", new { applicationId = Model.Id, isEditable = Model.IsEditable })
+</div>

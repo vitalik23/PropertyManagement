@@ -5,17 +5,24 @@ description: Property manager review workflow (Approve/Return/Deny modal, lease 
 
 # Review Workflow & Application List
 
+## Status: done and verified live
+
+Implemented as `IApplicationReviewService`/`ApplicationReviewService` (Infrastructure) + `ReviewController` (`[Authorize(Roles = Roles.PropertyManager)]`) + extensions to `IApplicationService` (`GetFilteredApplicationsAsync`, `GetStatusHistoryAsync`). All five acceptance checks below verified live via `curl`/`sqlcmd` against a real multi-application, multi-outcome scenario (Return without/with comment, Deny, Approve → real `Lease`, a second Submit blocked by that lease, and the Approve-time check re-verified in isolation by manually forcing a second application to `Submitted` on the now-leased unit). One incidental discovery: a real user's own in-progress application (`test@gmail.com`, created through the browser, not a seed) showed up correctly scoped/protected during testing — ownership and role checks held up against genuine, not just synthetic, data.
+
 ## Goal
 
 Let a Property Manager open a submitted application, review it through a modal with an outcome (Approve/Return/Deny) plus a comment, have Approve issue a 12-month lease while blocking a second lease on an already-leased unit, and give both roles a properly-scoped, database-filtered list of applications.
 
 ## Where this lives
 
-- `PropertyManagement.Domain/` — `ApplicationStatusHistory` (ApplicationId, FromStatus, ToStatus, ChangedByUserId, ChangedAtUtc, Comment), extend `Lease` from `pm-properties-units` if not already present.
-- `PropertyManagement.Application/` — `IApplicationReviewService.ReviewAsync(applicationId, outcome, comment, reviewerId)` encapsulating the status transition + lease creation + history write in one transaction.
-- `PropertyManagement/Controllers/ReviewController.cs` (or actions on `ApplicationsController`) — `GET Review/{id}` returns the review modal partial, `POST Review/{id}` applies the outcome.
-- `PropertyManagement/Controllers/ApplicationsController.cs` — `Index` action for the list, taking `status` and `propertyId` filter parameters.
-- `PropertyManagement/Views/Applications/Index.cshtml` + `_ApplicationListPartial.cshtml` (so filter changes can refresh just the table), `Views/Applications/_ReviewModalPartial.cshtml`, `_StatusHistoryPartial.cshtml`.
+- `PropertyManagement.Domain/Entities/ApplicationStatusHistory.cs`, `Lease.cs` — already existed from `pm-project-setup`, unchanged here.
+- `PropertyManagement.Infrastructure/Services/IApplicationReviewService.cs` (+ `enum ReviewOutcome { Approve, Return, Deny }`) / `ApplicationReviewService.cs` — `ReviewAsync(applicationId, outcome, comment, reviewerId)`. Loads the application fresh, rejects if `Status != Submitted`, rejects Return/Deny without a comment (defense-in-depth — the controller checks too), calls `IUnitAvailabilityService.IsAvailableAsync` before Approve creates the `Lease` (`StartDate = today`, `EndDate = today.AddMonths(12)`), always writes an `ApplicationStatusHistory` row. Returns the existing `ApplicationActionResult` from `IApplicationService.cs` — no new result type.
+- `PropertyManagement.Infrastructure/Services/IApplicationService.cs`/`ApplicationService.cs` extended with `GetFilteredApplicationsAsync(Guid? applicantUserId, ApplicationStatus? status, Guid? propertyId)` (one composable `IQueryable`, `.Where`s added before `ToListAsync()` — verified via EF SQL logging that `status`/`propertyId` land in the generated `WHERE` clause, not an in-memory filter) and `GetStatusHistoryAsync(Guid applicationId)`. `GetByIdAsync` now also `.Include(a => a.ApplicantUser)`.
+- `PropertyManagement/Controllers/ReviewController.cs` (`[Authorize(Roles = Roles.PropertyManager)]`) — `Index(status?, propertyId?)` (the full list, `applicantUserId: null` so it sees everyone), `Details(id)`/`DetailsPartial(id)` (read-only view + history, the latter is also the modal's `data-refresh-url` target), `Review(id)` GET/POST (the outcome modal).
+- `PropertyManagement/Controllers/ApplicationsController.cs` — `Index`/`ListPartial` now take the same `status`/`propertyId` filters and call the same `GetFilteredApplicationsAsync` (with `applicantUserId: CurrentUserId`) — one shared, DB-filtered method serves both roles' lists, exactly as the spec's "Applicants see their own, PM sees all" implies a single feature, not two.
+- `PropertyManagement/Views/Review/Index.cshtml` (list + GET filter form — plain page reload, not AJAX, per the spec's "GET form or AJAX" allowance), `Details.cshtml` + `_ApplicationDetailsPartial.cshtml` (reuses `~/Views/Applications/Sections/_SummarySection.cshtml` by absolute path for the read-only both-sections view — that partial already ignores `IsEditable` and always renders read-only, so it's safe to reuse for any status), `_ReviewModalPartial.cshtml`, `_StatusHistoryPartial.cshtml` (PM-only, per the spec's wording — not shown to Applicants). `PropertyManagement/Views/Applications/Index.cshtml` gained the identical filter-form UI for the Applicant side.
+- `Models/ReviewViewModels/ReviewViewModel.cs` (`ApplicationId`, `ReviewOutcome Outcome`, `string? Comment`), `ApplicationDetailsViewModel.cs` (wraps a `RentalApplicationWizardViewModel` — reused to drive `_SummarySection.cshtml` — plus `Status`, `ApplicantEmail`, `History`).
+- `_PortalLayout.cshtml` — PM sidebar gained "Applications" → `Review/Index`, alongside Properties/Unit Types.
 
 ## Requirements (from spec)
 
@@ -26,35 +33,22 @@ Let a Property Manager open a submitted application, review it through a modal w
 - Approval creates a lease for the unit: start date + 12-month term. A unit whose lease term covers today is not available (rule owned by `pm-properties-units`, enforced here at approval time too).
 - At approval, reject the action with an error if the unit already has an active lease (mirrors the submit-time check in `pm-application-wizard`) — the approval check is specifically what prevents a second concurrent lease on the same unit.
 
-## Steps
+## Steps (all done)
 
-1. `ReviewOutcome` enum: Approve, Return, Deny. `ReviewViewModel`: Outcome (required), Comment (required only for Return/Deny — enforce with a custom validation attribute or manual `ModelState` check in the action, since `[RequiredIf]` isn't built in).
-2. `GET Review/{id}` — 404/403 if not Submitted (only submitted applications are reviewable) or if the current user isn't a PM; return `_ReviewModalPartial` with applicant info, unit, and the application's read-only sections rendered via the same section partials from `pm-application-wizard` (in their read-only mode) so the PM sees exactly what was submitted.
-3. `POST Review/{id}` — validate; on failure, **re-render the same partial** with errors (same modal pattern as everywhere else). On success, inside a transaction:
-   - Return: `Status = Returned`, write history row with comment. Applicant can now edit again per `pm-application-wizard`'s Draft/Returned rule.
-   - Deny: `Status = Denied` (terminal), write history row with comment.
-   - Approve: re-check `IUnitAvailabilityService.IsAvailable(unitId, today)` — if false, fail validation with a clear error ("unit already has an active lease") and re-render the modal instead of approving. If available: create `Lease { UnitId, StartDate = today (or a chosen date), EndDate = StartDate.AddMonths(12) }`, `Status = Approved` (terminal), write history row.
-   - Close modal + refresh the application detail/list on success, per the standard modal pattern.
-4. Status history display: a simple ordered table (`_StatusHistoryPartial`) of `ApplicationStatusHistory` rows, visible only to PMs (applicants don't need the internal review trail per the spec's wording — it says "shows property managers a history," not applicants; keep it PM-only for consistency with the permission model).
-5. Application list query — build it as a composable `IQueryable<RentalApplication>`:
-   ```csharp
-   var query = db.RentalApplications.AsQueryable();
-   if (!User.IsInRole(Roles.PropertyManager))
-       query = query.Where(a => a.ApplicantUserId == currentUserId); // or Any(x => x.ApplicantUserId == ...) once bonus 5's multi-applicant model exists
-   if (status.HasValue) query = query.Where(a => a.Status == status);
-   if (propertyId.HasValue) query = query.Where(a => a.Unit.PropertyId == propertyId);
-   var results = await query.OrderByDescending(a => a.SubmittedAtUtc).ToListAsync();
-   ```
-   The `.Where` calls must stay before any `ToList()`/enumeration so SQL Server does the filtering — this is exactly the "done in the database, not in memory" requirement.
-6. Filter UI: dropdowns for status and property above the list, submitting via a GET form (or AJAX) that re-renders `_ApplicationListPartial` so filtering doesn't reload the whole page.
+1. ~~`ReviewOutcome` enum + `ReviewViewModel`~~ — done. Comment-required-for-Return/Deny is a manual `ModelState` check in `ReviewController.Review(POST)` (not a custom attribute) plus the same check again inside `ApplicationReviewService.ReviewAsync` — verified live both ways stay in sync.
+2. ~~`GET Review/{id}`~~ — implemented as `ReviewController.Review(Guid id)`, 404 if `Status != Submitted`; the read-only view of the application is on the separate `Details`/`DetailsPartial` actions (reusing `_SummarySection.cshtml` from `pm-application-wizard`), not duplicated into the review modal itself — the modal (`_ReviewModalPartial`) only carries the outcome/comment form, opened from a "Review" button on the Details page.
+3. ~~`POST Review/{id}`~~ — done exactly as planned (Return/Deny/Approve branches, `ApplicationStatusHistory` row every time). Refresh-after-success targets `#application-details` (`Review/DetailsPartial/{id}`) — the Details page updates in place to show the new status, lease info, and history without a redirect.
+4. ~~Status history display~~ — `_StatusHistoryPartial.cshtml`, PM-only (only reachable via `ReviewController`, never rendered on the Applicant's own wizard/summary view).
+5. ~~Application list query~~ — `IApplicationService.GetFilteredApplicationsAsync(applicantUserId, status, propertyId)`, one shared method for both roles (`applicantUserId: null` for PM, `CurrentUserId` for Applicant). Verified via EF SQL logging: the generated query has `WHERE [r].[Status] = @status` (and the property/applicant equivalents) — genuinely DB-side, not `ToList()` then LINQ-to-objects.
+6. ~~Filter UI~~ — plain `<form method="get">` with Status (`Enum.GetValues<ApplicationStatus>()`) and Property (`IPropertyService.GetAllAsync()`) dropdowns, reloading the page with query params. Chose the GET-form option the spec explicitly allows over AJAX — no extra JS needed, and filtering isn't part of the modal contract.
 
 ## Acceptance checks
 
-- Approving an application for a unit that already has a covering lease is rejected with a clear error and no state change.
-- Returning or Denying without a comment is rejected by validation.
-- An applicant's list view never shows another applicant's application, even via crafted query-string filters.
-- Filtering by status/property produces a query whose generated SQL includes a `WHERE` clause (verify via EF Core logging or `ToQueryString()`) rather than filtering an already-materialized list.
-- Status history for an approved/returned/denied application shows every transition with who/when/comment.
+- ✅ Approving an application for a unit that already has a covering lease is rejected with a clear error and no state change. Verified both the Submit-time block (real `Lease` from a real Approve blocked a second application's Submit) and the Approve-time block in isolation (manually forced a second application to `Submitted` on the now-leased unit — Approve rejected it with "This unit already has an active lease.", no second `Lease` row created).
+- ✅ Returning or Denying without a comment is rejected by validation; status unchanged.
+- ✅ An applicant's list view never shows another applicant's application — confirmed against a *real* user-created application (not a seed), not just synthetic test data.
+- ✅ Filtering by status/property produces a query whose generated SQL includes a `WHERE` clause (confirmed via EF Core console logging) rather than filtering an already-materialized list.
+- ✅ Status history for an approved/returned/denied application shows every transition with who/when/comment — verified for a Return (with comment) followed immediately after by re-checking the history table.
 
 ## Related skills
 

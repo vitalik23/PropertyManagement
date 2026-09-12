@@ -24,7 +24,19 @@ DB connection + Identity infrastructure is wired up: `Microsoft.EntityFrameworkC
 
 **Note:** EF Core auto-generates `Guid`-typed primary keys on `SaveChanges` by convention (`ValueGeneratedOnAdd`, confirmed in the migration snapshot) — this applies to `User.Id` and to `IdentityRole<Guid>.Id` alike. No manual `Id = Guid.NewGuid()` is needed anywhere, including at role-seeding time (step 5 below).
 
-**Still to do** (this skill's remaining scope): Bogus, the domain `DbSet<T>`s, role/user/lookup/property/application seeding, and the production connection-string story. Don't redo the steps above — pick up from "Packages to add" below for what's left.
+**Still to do** (this skill's remaining scope): the production connection-string story. Bogus-based data seeding is now done — see the new Status entry below.
+
+## Status: Bogus data seeding — done and verified
+
+`PropertyManagement.Infrastructure/Data/Seed/IDataSeeder.cs`/`DataSeeder.cs`, registered `AddScoped<IDataSeeder, DataSeeder>()` and invoked in `Program.cs`'s startup scope right after `roleSeeder.SeedAsync()`. Follows the exact same idempotent-seeder pattern as `RoleSeeder`, but guards the whole run behind a single `if (await db.Properties.AnyAsync()) return;` (properties are the reliable signal that a full seed already ran) rather than per-entity checks — simpler, and correct because the seeder either creates the entire dataset in one pass or does nothing.
+
+What it seeds, using `Bogus` (`Randomizer.Seed = new Random(8675309)` for a deterministic dataset across fresh-DB runs):
+- **UnitTypes (lookups)**: 5 fixed names, 4 active + 1 ("Legacy Loft") deliberately assigned to a unit *first*, then flipped to `IsActive = false` — demonstrates "inactive type still shows on the unit that already uses it, not selectable elsewhere" out of the box.
+- **Users**: 2 Property Managers (`pm1@example.com`, `pm2@example.com`) + 6 Applicants (Bogus-generated emails), all created via `UserManager.CreateAsync`/`AddToRoleAsync` (not raw `DbContext.Add`, so Identity password hashing runs correctly). Seed password for every seeded account: **`Passw0rd!1`** (documented in README, not a real secret).
+- **Properties + Units**: 3 Bogus-generated properties, 3 units each (9 total) — realistic addresses/rents via `Faker<Property>`, random bedrooms/rent/active-unit-type per unit.
+- **Applications — one per `ApplicationStatus` value**, each driven through the *real* service methods (`IApplicationService`/`IApplicationReviewService`), not hand-inserted rows — guarantees seed data can never drift from actual business rules (lease `EndDate` calc, `ApplicationStatusHistory` writes, section-completion timestamps): Draft (`GetOrStartAsync` only), Submitted (full wizard walk + `SubmitAsync`), Returned/Denied/Approved (same walk + `ReviewAsync` with the matching outcome — Approved's `Lease` genuinely covers today), Withdrawn (`GetOrStartAsync` + `WithdrawAsync`).
+
+Verified live against a disposable throwaway LocalDB (`PropertyManagement-seed-verify`, created and dropped for this check only — the real dev DB was never touched): first run seeded exactly 5 UnitTypes (1 inactive, assigned to a real unit), 3 Properties, 9 Units, 8 Users (2 PM + 6 Applicant), 6 RentalApplications (one per status 0–5), 1 Lease covering today, 4 Residences, 8 `ApplicationStatusHistory` rows; a second `dotnet run` against the same DB produced zero additional inserts (log showed only the `Properties.Any()` guard query) and identical row counts. Logged in as the seeded `pm1@example.com` and confirmed `Review/Index` renders all six statuses from real seeded data.
 
 ## Packages to add
 
@@ -43,21 +55,14 @@ DB connection + Identity infrastructure is wired up: `Microsoft.EntityFrameworkC
    - Anything bonus features add later (`ReviewClaim`, `PropertyManagerNote`, `ApplicationApplicant` join) — only if doing that bonus. Same pattern: implement `IBaseEntity` directly, register as `DbSet<T>`, add FK delete-behavior overrides to `OnModelCreating` as needed. Follow up with `dotnet ef migrations add <Name> --project PropertyManagement.Infrastructure --startup-project PropertyManagement --output-dir Data/Migrations` per schema change; `Program.cs`'s existing `Database.Migrate()` call applies them on next run — no extra wiring needed.
 3. ~~Role seeding~~ — done, see Status above. **Remaining part of this step:** register any further Application/Infrastructure services in `Program.cs` (`AddScoped<IXxxService, XxxService>`) as they're built (`RoleSeeder` is the pattern to follow — small `IXxxSeeder`/`XxxSeeder` pair in `Infrastructure/Data/Seed/`, invoked from the same startup scope as `Database.Migrate()`).
 4. **Production connection string** — `appsettings.json` still has no `ConnectionStrings` section by design (dev-only value lives in `appsettings.Development.json`); decide how prod supplies `DefaultConnection` (env var, user-secrets, Azure config) when that need arises, and document it in the README.
-5. **Seeding — must be idempotent** (safe to run on every startup, e.g. check `if (!context.Properties.Any())` guards per entity group, or check-and-skip per named seed record):
-   - ~~Roles~~ — done (`RoleSeeder`, see Status above).
-   - Property managers and applicants: seed `User` + role assignment via `UserManager`/`RoleManager` (use `Roles.Applicant`/`Roles.PropertyManager`), not raw `DbContext.Add` (so Identity's password hashing etc. runs correctly). Use a fixed, documented seed password for demo accounts (put it in the README, not committed as a "secret").
-   - Lookups: `UnitType` values, include at least one **Inactive** one so the Active/Inactive rule (see `pm-properties-units`) has something to exercise.
-   - Properties and units: use Bogus (`Faker<Property>`, `Faker<Unit>`) for realistic names/addresses/rents; keep unit `UnitTypeId` pointing at seeded lookups only.
-   - Applications: seed **at least one application in every status** (Draft, Submitted, Returned, Approved, Denied, Withdrawn) so the reviewer can see the full lifecycle without manually creating each state. An Approved one needs a matching Lease row with a 12-month term covering "today" so the unit-unavailable rule is demonstrably exercised.
-   - Wrap the whole seed in idempotency checks keyed on stable identifiers (e.g. a fixed seed email per demo user, a fixed property name) — re-running `Program.cs` on every `dotnet run` must not create duplicates.
-   - Call the seeder from `Program.cs` right after the existing `db.Database.Migrate()` call, inside the same DI scope.
+5. ~~**Seeding**~~ — done, see "Status: Bogus data seeding" above. All sub-items (roles, PM/applicant users via `UserManager`, UnitType lookups with an inactive one, Bogus properties/units, applications in every status with a covering Lease on the Approved one, single idempotency guard, invoked from `Program.cs` after `Database.Migrate()`) are complete and verified live.
 
 ## Acceptance checks
 
-- `dotnet run` on a machine with only SQL Server/LocalDB installed creates the database, applies all migrations, and seeds data with no manual steps.
-- Running the app twice in a row does not duplicate seed rows (check `SELECT COUNT(*)` on a seeded table stays constant across restarts).
-- At least one unit is seeded with an Inactive `UnitType` still assigned to it.
-- Applications exist in all six statuses; at least one Approved application has a Lease whose date range covers today.
+- ✅ `dotnet run` on a machine with only SQL Server/LocalDB installed creates the database, applies all migrations, and seeds data with no manual steps.
+- ✅ Running the app twice in a row does not duplicate seed rows (verified: identical `Properties`/`Units`/`RentalApplications`/`AspNetUsers` counts across two consecutive runs against the same DB).
+- ✅ At least one unit is seeded with an Inactive `UnitType` still assigned to it.
+- ✅ Applications exist in all six statuses; the Approved application has a Lease whose date range covers today.
 
 ## Related skills
 

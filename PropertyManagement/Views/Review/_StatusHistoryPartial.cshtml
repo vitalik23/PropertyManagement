@@ -1,0 +1,32 @@
+@using PropertyManagement.Domain.Entities
+@model List<ApplicationStatusHistory>
+
+<table class="table table-sm table-striped">
+    <thead>
+        <tr>
+            <th>When</th>
+            <th>Who</th>
+            <th>From</th>
+            <th>To</th>
+            <th>Comment</th>
+        </tr>
+    </thead>
+    <tbody>
+        @if (Model.Count == 0)
+        {
+            <tr>
+                <td colspan="5" class="text-center text-muted">No status changes yet.</td>
+            </tr>
+        }
+        @foreach (var entry in Model)
+        {
+            <tr>
+                <td>@entry.CreatedAt.ToString("g")</td>
+                <td>@entry.ChangedByUser.Email</td>
+                <td>@(entry.FromStatus?.ToString() ?? "—")</td>
+                <td>@entry.ToStatus</td>
+                <td>@entry.Comment</td>
+            </tr>
+        }
+    </tbody>
+</table>

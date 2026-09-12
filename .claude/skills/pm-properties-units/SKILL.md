@@ -54,14 +54,16 @@ Every future modal (Unit CRUD, Residence History, Review) just needs its own par
 2. ~~Unit create/edit dropdown sourcing~~ done — `IUnitService.GetSelectableUnitTypesAsync`, verified live (see "Where this lives" above).
 3. ~~Server-side Active/Inactive enforcement~~ done — `UnitSaveResult` from `IUnitService`, verified live for all three cases (reject on create with Inactive, reject on edit *changing to* Inactive, allow edit *keeping* an already-assigned now-Inactive type).
 4. **Next up:** Property delete still just removes the row (EF cascade already deletes its Units — configured back in `pm-project-setup`'s entity work, not revisited here); still no block/confirm based on active leases or non-terminal applications, because neither `Lease` nor `RentalApplication` has any UI/rows yet. Revisit once those exist.
-5. **Next up:** Availability — `IUnitAvailabilityService.IsAvailable(unitId, DateTime today)` — a unit is unavailable if `Leases.Any(l => l.UnitId == unitId && l.StartDate <= today && l.EndDate >= today)`. Use this everywhere availability is checked (browse list, application start, submit-time re-check, approval-time re-check). Not built yet.
-6. **Next up:** Applicant browse view: list/grid of units where `IsAvailable == true`, showing property, unit number, bedrooms, rent, unit type; "Apply" starts a new application only from here. Not built yet — this is the natural next UI slice (first Applicant-facing page; everything so far has been PropertyManager-only).
+5. ~~Availability~~ done — `PropertyManagement.Infrastructure/Services/IUnitAvailabilityService.cs`/`UnitAvailabilityService.cs`: `IsAvailableAsync(Guid unitId, DateOnly today)` and `GetAvailableUnitsAsync(DateOnly today)` (bulk, single DB query with a `NOT EXISTS`-style `Where` — no in-memory filtering). Not yet consumed anywhere except the browse view below; `pm-application-wizard` (submit-time) and `pm-review-list` (approval-time) still need to inject and call it themselves when those get built.
+6. ~~Applicant browse view~~ done — `BrowseController` (`[Authorize(Roles = Roles.Applicant)]`, first Applicant-only page in the app), `Views/Browse/Index.cshtml` (`Layout = "_PortalLayout"`, sidebar entry "Browse Units" visible only to `Roles.Applicant`). Plain table, no view component (page is read-only, no modal/AJAX-refresh need — the spec's view-component requirement is already satisfied by `PropertiesListViewComponent`). The "Apply" button is rendered **disabled** (`title="Coming soon"`) — starting an application is `pm-application-wizard`, not built yet, so the button is a placeholder rather than a dead link. Verified live end-to-end: inserted a test `RentalApplication` + covering `Lease` row directly via `sqlcmd` (no UI creates these yet) for the one existing seeded unit — it disappeared from `/Browse/Index`; removed the test rows — it reappeared. Also verified PropertyManager and anonymous users are rejected (`/Account/AccessDenied` and `/Account/Login` respectively) — this page is Applicant-only.
 
 ## Acceptance checks
 
-- Editing a unit whose current type is Inactive still shows that type selected; changing it to a different Inactive type is rejected server-side even if the dropdown were manipulated to offer it.
-- A unit with a lease covering today does not appear in the applicant browse list.
-- Modal validation failures re-render the same modal with errors and no page navigation; successful saves close the modal and the underlying list updates without a full reload.
+- ✅ Editing a unit whose current type is Inactive still shows that type selected; changing it to a different Inactive type is rejected server-side even if the dropdown were manipulated to offer it.
+- ✅ A unit with a lease covering today does not appear in the applicant browse list.
+- ✅ Modal validation failures re-render the same modal with errors and no page navigation; successful saves close the modal and the underlying list updates without a full reload.
+
+All three acceptance checks for this skill are now verified live — this skill's scope is essentially complete except for the two "Next up" items in step 4 (Property delete guarding against active leases/applications, deferred until those flows exist).
 
 ## Related skills
 

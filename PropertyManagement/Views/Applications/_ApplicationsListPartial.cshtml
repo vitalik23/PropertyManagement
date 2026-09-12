@@ -1,0 +1,39 @@
+@using PropertyManagement.Domain.Entities
+@using PropertyManagement.Domain.Enums
+@model List<RentalApplication>
+
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>Property</th>
+            <th>Unit #</th>
+            <th>Status</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        @if (Model.Count == 0)
+        {
+            <tr>
+                <td colspan="4" class="text-center text-muted">You haven't started any applications yet.</td>
+            </tr>
+        }
+        @foreach (var application in Model)
+        {
+            <tr>
+                <td>@application.Unit.Property.Name</td>
+                <td>@application.Unit.UnitNumber</td>
+                <td>@application.Status</td>
+                <td class="text-end">
+                    <a asp-controller="Applications" asp-action="Wizard" asp-route-id="@application.Id" class="btn btn-sm btn-outline-primary">
+                        @(application.Status is ApplicationStatus.Draft or ApplicationStatus.Returned ? "Continue" : "View")
+                    </a>
+                    @if (application.Status is ApplicationStatus.Draft or ApplicationStatus.Submitted or ApplicationStatus.Returned)
+                    {
+                        <a href="#" class="btn btn-sm btn-outline-danger" data-modal-url="/Applications/Withdraw/@application.Id">Withdraw</a>
+                    }
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>

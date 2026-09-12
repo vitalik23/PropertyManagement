@@ -16,6 +16,18 @@
                 <li class="nav-item">
                     <a class="nav-link" asp-controller="UnitTypes" asp-action="Index">Unit Types</a>
                 </li>
+                <li class="nav-item">
+                    <a class="nav-link" asp-controller="Review" asp-action="Index">Applications</a>
+                </li>
+            }
+            @if (User.IsInRole(Roles.Applicant))
+            {
+                <li class="nav-item">
+                    <a class="nav-link" asp-controller="Browse" asp-action="Index">Browse Units</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" asp-controller="Applications" asp-action="Index">My Applications</a>
+                </li>
             }
             <li class="nav-item">
                 <form asp-controller="Account" asp-action="Logout" method="post">

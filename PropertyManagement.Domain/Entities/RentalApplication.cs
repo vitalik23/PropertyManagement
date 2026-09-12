@@ -22,6 +22,9 @@ public class RentalApplication : IBaseEntity
     public string Email { get; set; } = string.Empty;
     public string CurrentAddress { get; set; } = string.Empty;
 
+    public DateTime? ApplicantInfoCompletedAt { get; set; }
+    public DateTime? ResidenceHistoryCompletedAt { get; set; }
+
     public ICollection<Residence> Residences { get; set; } = new List<Residence>();
     public Lease? Lease { get; set; }
     public ICollection<ApplicationStatusHistory> StatusHistory { get; set; } = new List<ApplicationStatusHistory>();

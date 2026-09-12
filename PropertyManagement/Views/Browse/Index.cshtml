@@ -1,0 +1,43 @@
+@using PropertyManagement.Domain.Entities
+@model List<Unit>
+@{
+    Layout = "_PortalLayout";
+    ViewData["Title"] = "Browse Units";
+}
+
+<h1>Browse Units</h1>
+<p class="text-muted">Units currently available for rent.</p>
+
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>Property</th>
+            <th>Unit #</th>
+            <th>Bedrooms</th>
+            <th>Monthly rent</th>
+            <th>Unit type</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        @if (Model.Count == 0)
+        {
+            <tr>
+                <td colspan="6" class="text-center text-muted">No units are available right now.</td>
+            </tr>
+        }
+        @foreach (var unit in Model)
+        {
+            <tr>
+                <td>@unit.Property.Name</td>
+                <td>@unit.UnitNumber</td>
+                <td>@unit.Bedrooms</td>
+                <td>@unit.MonthlyRent.ToString("C")</td>
+                <td>@unit.UnitType.Name</td>
+                <td class="text-end">
+                    <a asp-controller="Applications" asp-action="Start" asp-route-unitId="@unit.Id" class="btn btn-sm btn-primary">Apply</a>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>

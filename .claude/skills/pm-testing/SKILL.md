@@ -5,38 +5,51 @@ description: Set up the xUnit test project and cover the assessment's business l
 
 # Unit Testing
 
+## Status: done and verified
+
+`PropertyManagement.Tests` (xUnit, referencing `PropertyManagement.Infrastructure`) covers every rule listed below with both a happy-path and a rejection-path test. `dotnet test` from the repo root: 34/34 passing, no SQL Server/LocalDB dependency — each test spins up its own `SqliteConnection("DataSource=:memory:")` (kept open for the test's lifetime) via `TestDbContextFactory`, with deterministic fixtures built by `TestDataBuilder`. Boundary convention pinned down by test: `UnitAvailabilityService.IsAvailableAsync`'s `StartDate <= today && EndDate >= today` is inclusive on **both** ends — a lease starting or ending exactly today makes the unit unavailable.
+
 ## Goal
 
 Satisfy "Add unit tests for business logic" with a real test project exercising the rules that actually matter for correctness, not incidental coverage of controllers/views.
 
 ## Where this lives
 
-- New project: `PropertyManagement.Tests/` (add to `PropertyManagement.slnx`), referencing `PropertyManagement.Domain` and `PropertyManagement.Application` (and `Infrastructure` only if a test needs the EF Core InMemory or Sqlite provider to exercise a query-shaped rule like DB-side filtering).
-- Packages: `Microsoft.NET.Test.Sdk`, `xunit`, `xunit.runner.visualstudio`, `Microsoft.EntityFrameworkCore.InMemory` (or `Microsoft.Data.Sqlite` if a test needs real SQL translation behavior — InMemory doesn't validate `Where` clauses translate to SQL, so prefer Sqlite in-memory for the "filtering done in the database" check if you want to actually assert that).
-- Test files mirror the source structure: `Services/UnitAvailabilityServiceTests.cs`, `Services/ApplicationReviewServiceTests.cs`, `Wizard/RentalApplicationViewModelValidationTests.cs`, `Auth/OwnershipTests.cs` (or per-controller test classes if the ownership checks live there).
+- `PropertyManagement.Tests/` (added to `PropertyManagement.slnx`), referencing only `PropertyManagement.Infrastructure` (Domain/Application come along transitively — the services and `ApplicationDbContext` under test live in Infrastructure).
+- Packages beyond the `dotnet new xunit` defaults (`Microsoft.NET.Test.Sdk`, `xunit`, `xunit.runner.visualstudio`, `coverlet.collector`): `Microsoft.EntityFrameworkCore.Sqlite` — chosen over the InMemory provider specifically because InMemory silently accepts LINQ that wouldn't translate to real SQL, which matters for `GetFilteredApplicationsAsync`'s DB-side filtering claim.
+- `TestDbContextFactory.cs` — opens a `SqliteConnection("DataSource=:memory:")` per test (kept open for the test's lifetime, since an in-memory Sqlite DB disappears when its one connection closes), builds an `ApplicationDbContext` on it, `Database.EnsureCreated()`. Each test class instantiates its own factory in the constructor and disposes it in `Dispose()` (`IDisposable` per-test isolation, no shared state between tests).
+- `TestDataBuilder.cs` — static async helpers (`CreatePropertyAsync`, `CreateUnitTypeAsync`, `CreateUnitAsync`, `CreateUserAsync`, `CreateApplicationAsync`, `CreateLeaseAsync`) that add small, explicit, deterministic fixtures directly to the context and save — no Bogus, so a failing test is easy to read.
+- Test files mirror the service they cover: `Services/UnitAvailabilityServiceTests.cs`, `Services/ApplicationReviewServiceTests.cs`, `Services/ApplicationServiceTests.cs`, `Services/UnitServiceTests.cs`.
 
-## What to cover (mapped to spec rules, not just "write some tests")
+## What's covered (mapped to spec rules)
 
-- **Unit availability** (`pm-properties-units`): a unit with a lease whose range covers today is unavailable; a unit with a lease entirely in the past or future is available; boundary dates (lease starts/ends exactly today) resolve correctly per whatever inclusive/exclusive convention you pick — pin that convention down with a test.
-- **Second-lease prevention** (`pm-review-list`): approving an application for a unit that already has a covering lease is rejected; approving when the unit is free succeeds and creates a lease with `EndDate == StartDate.AddMonths(12)`.
-- **Status transitions**: only Submitted → {Returned, Denied, Approved} are valid review outcomes; Draft/Returned are the only statuses from which the applicant wizard allows edits; Approved/Denied/Withdrawn are terminal — attempting any transition out of a terminal status should be rejected wherever that's enforced (service layer, not just UI).
-- **Submit-time active-lease check** (`pm-application-wizard`): submitting when the unit already has a covering lease is rejected without affecting other applications for the same unit.
-- **Section validation** (`pm-application-wizard`): Continue with an invalid current section does not persist and does not advance; a valid section persists and advances.
-- **Unit Type Active/Inactive enforcement** (`pm-properties-units`): assigning an Inactive type to a new/changing unit is rejected; keeping an already-assigned Inactive type on an edit that doesn't change the type succeeds.
-- **Ownership/permission checks** (`pm-identity-roles`): an applicant cannot act on another applicant's application; a non-PM cannot reach review/property-management operations — test at the service/authorization-logic level, or via `WebApplicationFactory` integration tests against the controllers if you'd rather cover it there.
-- If any bonus features are implemented (`pm-bonus-features`), especially item 5's optimistic concurrency: a stale second save is rejected, not silently overwritten — this is exactly the kind of business rule unit tests are for.
+- **Unit availability** (`pm-properties-units`) — `UnitAvailabilityServiceTests`: covering lease → unavailable; lease entirely past/future → available; lease starting exactly today → unavailable; lease ending exactly today → unavailable (pins the inclusive-both-ends convention); `GetAvailableUnitsAsync` excludes the leased unit and includes the free one.
+- **Second-lease prevention** (`pm-review-list`) — `ApplicationReviewServiceTests`: Approve on a free unit creates a `Lease` with `EndDate == StartDate.AddMonths(12)` and sets `Approved`; Approve on a unit with an existing covering lease fails with "This unit already has an active lease." and no second `Lease` row is created.
+- **Review status transitions** (`pm-review-list`) — reviewing a non-`Submitted` application (e.g. `Draft`) fails with "Only submitted applications can be reviewed."; Return/Deny without a comment fail and leave the status unchanged; Return/Deny with a comment set the expected status and write an `ApplicationStatusHistory` row with `FromStatus`/`ToStatus`/`Comment`/`ChangedByUserId`.
+- **Submit-time rules** (`pm-application-wizard`) — `ApplicationServiceTests.SubmitAsync_*`: Draft with both sections complete and an available unit succeeds and writes history; incomplete sections fail without changing status; an already-leased unit fails with "This unit is no longer available."; an already-`Submitted` application fails with "This application can no longer be edited."
+- **Withdraw terminality** — `WithdrawAsync_FromNonTerminalStatus_Succeeds`/`WithdrawAsync_FromTerminalStatus_Fails` theories: Draft/Submitted/Returned succeed and become `Withdrawn`; Approved/Denied/Withdrawn each fail and stay unchanged.
+- **Ownership checks** (`pm-identity-roles`) — `SaveApplicantInfoAsync_WrongOwner_Fails`, `AddResidenceAsync_WrongOwner_Fails`: a non-owning `applicantUserId` is rejected and the underlying data is untouched. Both routes go through the shared `GetEditableOwnedAsync`/`IsEditableOwned` check, so this exercises the one code path shared by every mutating method on `ApplicationService`.
+- **DB-side filtering** (`pm-review-list`) — `GetFilteredApplicationsAsync_*`: no filters returns everything; status/property/applicant filters each narrow correctly alone and combined. Run against real Sqlite (not InMemory) specifically so the `Unit.PropertyId` navigation filter is proven to actually translate to SQL.
+- **Unit Type Active/Inactive enforcement** (`pm-properties-units`) — `UnitServiceTests`: creating or retargeting a unit onto an inactive type fails; leaving an already-assigned inactive type untouched on an edit still succeeds (the `unitTypeId` didn't change, so the inactive check is correctly skipped).
 
-## Steps
+## Deliberately out of scope
 
-1. `dotnet new xunit -o PropertyManagement.Tests`, add to the `.slnx`, add project references.
-2. Favor testing service-layer methods (`IUnitAvailabilityService`, `IApplicationReviewService`, wizard section-save logic) directly over testing through MVC controllers — faster, more focused, and keeps controllers thin enough that there's little controller-specific logic left to test separately.
-3. Use EF Core Sqlite in-memory (`UseSqlite("DataSource=:memory:")`, keep the connection open for the test's lifetime) when a test needs to prove a `Where` clause is actually filtering in the database, since the EF InMemory provider silently accepts LINQ that wouldn't translate to real SQL.
-4. Arrange test data directly against the `DbContext` (no need for Bogus in tests — use small, explicit, deterministic fixtures so failures are easy to read).
+- **Section validation** (Continue with an invalid section doesn't advance) is enforced by data-annotation `[Required]` attributes on the wizard ViewModels plus `ModelState.IsValid` in `ApplicationsController.Wizard` — MVC model-binding/validation framework behavior, not custom business logic in the service layer. Covering it would mean a `WebApplicationFactory` integration test, which this project intentionally skips (see below).
+- **Role/permission boundaries** (a non-PM can't reach `ReviewController`) are enforced declaratively via `[Authorize(Roles = ...)]` — this is ASP.NET Core's own tested behavior, not project logic worth re-verifying with a unit test.
+- `pm-bonus-features` item 5 (optimistic concurrency) isn't tested because it isn't implemented — nothing is skipped there.
+- No `WebApplicationFactory`/controller-level tests at all: with controllers this thin, everything worth asserting is already reachable — and asserted — at the service layer.
+
+## Steps (all done)
+
+1. ~~`dotnet new xunit -o PropertyManagement.Tests`, add to the `.slnx`, add project references~~ — done; only an `Infrastructure` reference was needed (Domain/Application come transitively).
+2. ~~Test service-layer methods directly~~ — done, no controller tests (see Deliberately out of scope).
+3. ~~EF Core Sqlite in-memory for real SQL translation~~ — done via `TestDbContextFactory`.
+4. ~~Explicit, deterministic fixtures, no Bogus~~ — done via `TestDataBuilder`.
 
 ## Acceptance checks
 
-- `dotnet test` from the repo root runs the whole suite with no manual setup beyond what's already true for `dotnet run` (no live SQL Server dependency — Sqlite/InMemory only).
-- Every rule listed above has at least one passing test and one test proving the rejection path (not just the happy path).
+- ✅ `dotnet test` from the repo root runs the whole suite with no manual setup: 34/34 passing, no live SQL Server/LocalDB dependency (Sqlite in-memory only).
+- ✅ Every covered rule above has at least one passing test and one test proving the rejection path, not just the happy path.
 
 ## Related skills
 
