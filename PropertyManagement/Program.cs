@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using PropertyManagement.Domain.Entities;
 using PropertyManagement.Infrastructure.Data;
 using PropertyManagement.Infrastructure.Data.Seed;
+using PropertyManagement.Infrastructure.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -20,6 +21,7 @@ builder.Services.AddIdentity<User, IdentityRole<Guid>>()
     .AddDefaultTokenProviders();
 
 builder.Services.AddScoped<IRoleSeeder, RoleSeeder>();
+builder.Services.AddScoped<IAuthService, AuthService>();
 
 var app = builder.Build();
 
