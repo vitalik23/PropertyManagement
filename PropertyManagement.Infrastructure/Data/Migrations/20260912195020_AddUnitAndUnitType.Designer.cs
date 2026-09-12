@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using PropertyManagement.Infrastructure.Data;
 
@@ -11,9 +12,11 @@ using PropertyManagement.Infrastructure.Data;
 namespace PropertyManagement.Infrastructure.Data.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260912195020_AddUnitAndUnitType")]
+    partial class AddUnitAndUnitType
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -153,76 +156,6 @@ namespace PropertyManagement.Infrastructure.Data.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
-            modelBuilder.Entity("PropertyManagement.Domain.Entities.ApplicationStatusHistory", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid>("ChangedByUserId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("Comment")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int?>("FromStatus")
-                        .HasColumnType("int");
-
-                    b.Property<Guid>("RentalApplicationId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<int>("ToStatus")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ChangedByUserId");
-
-                    b.HasIndex("RentalApplicationId");
-
-                    b.ToTable("ApplicationStatusHistories");
-                });
-
-            modelBuilder.Entity("PropertyManagement.Domain.Entities.Lease", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateOnly>("EndDate")
-                        .HasColumnType("date");
-
-                    b.Property<Guid>("RentalApplicationId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateOnly>("StartDate")
-                        .HasColumnType("date");
-
-                    b.Property<Guid>("UnitId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("RentalApplicationId")
-                        .IsUnique();
-
-                    b.HasIndex("UnitId");
-
-                    b.ToTable("Leases");
-                });
-
             modelBuilder.Entity("PropertyManagement.Domain.Entities.Property", b =>
                 {
                     b.Property<Guid>("Id")
@@ -261,92 +194,6 @@ namespace PropertyManagement.Infrastructure.Data.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Properties");
-                });
-
-            modelBuilder.Entity("PropertyManagement.Domain.Entities.RentalApplication", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid>("ApplicantUserId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("CurrentAddress")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Email")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("FullName")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("PhoneNumber")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("Status")
-                        .HasColumnType("int");
-
-                    b.Property<Guid>("UnitId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ApplicantUserId");
-
-                    b.HasIndex("UnitId");
-
-                    b.ToTable("RentalApplications");
-                });
-
-            modelBuilder.Entity("PropertyManagement.Domain.Entities.Residence", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("Address")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("LandlordName")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("LandlordPhone")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateOnly>("MoveInDate")
-                        .HasColumnType("date");
-
-                    b.Property<DateOnly>("MoveOutDate")
-                        .HasColumnType("date");
-
-                    b.Property<Guid>("RentalApplicationId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("RentalApplicationId");
-
-                    b.ToTable("Residences");
                 });
 
             modelBuilder.Entity("PropertyManagement.Domain.Entities.Unit", b =>
@@ -533,74 +380,6 @@ namespace PropertyManagement.Infrastructure.Data.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("PropertyManagement.Domain.Entities.ApplicationStatusHistory", b =>
-                {
-                    b.HasOne("PropertyManagement.Domain.Entities.User", "ChangedByUser")
-                        .WithMany()
-                        .HasForeignKey("ChangedByUserId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("PropertyManagement.Domain.Entities.RentalApplication", "RentalApplication")
-                        .WithMany("StatusHistory")
-                        .HasForeignKey("RentalApplicationId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("ChangedByUser");
-
-                    b.Navigation("RentalApplication");
-                });
-
-            modelBuilder.Entity("PropertyManagement.Domain.Entities.Lease", b =>
-                {
-                    b.HasOne("PropertyManagement.Domain.Entities.RentalApplication", "RentalApplication")
-                        .WithOne("Lease")
-                        .HasForeignKey("PropertyManagement.Domain.Entities.Lease", "RentalApplicationId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("PropertyManagement.Domain.Entities.Unit", "Unit")
-                        .WithMany("Leases")
-                        .HasForeignKey("UnitId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("RentalApplication");
-
-                    b.Navigation("Unit");
-                });
-
-            modelBuilder.Entity("PropertyManagement.Domain.Entities.RentalApplication", b =>
-                {
-                    b.HasOne("PropertyManagement.Domain.Entities.User", "ApplicantUser")
-                        .WithMany()
-                        .HasForeignKey("ApplicantUserId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("PropertyManagement.Domain.Entities.Unit", "Unit")
-                        .WithMany("RentalApplications")
-                        .HasForeignKey("UnitId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("ApplicantUser");
-
-                    b.Navigation("Unit");
-                });
-
-            modelBuilder.Entity("PropertyManagement.Domain.Entities.Residence", b =>
-                {
-                    b.HasOne("PropertyManagement.Domain.Entities.RentalApplication", "RentalApplication")
-                        .WithMany("Residences")
-                        .HasForeignKey("RentalApplicationId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("RentalApplication");
-                });
-
             modelBuilder.Entity("PropertyManagement.Domain.Entities.Unit", b =>
                 {
                     b.HasOne("PropertyManagement.Domain.Entities.Property", "Property")
@@ -623,22 +402,6 @@ namespace PropertyManagement.Infrastructure.Data.Migrations
             modelBuilder.Entity("PropertyManagement.Domain.Entities.Property", b =>
                 {
                     b.Navigation("Units");
-                });
-
-            modelBuilder.Entity("PropertyManagement.Domain.Entities.RentalApplication", b =>
-                {
-                    b.Navigation("Lease");
-
-                    b.Navigation("Residences");
-
-                    b.Navigation("StatusHistory");
-                });
-
-            modelBuilder.Entity("PropertyManagement.Domain.Entities.Unit", b =>
-                {
-                    b.Navigation("Leases");
-
-                    b.Navigation("RentalApplications");
                 });
 #pragma warning restore 612, 618
         }

@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using PropertyManagement.Infrastructure.Data;
 
@@ -11,9 +12,11 @@ using PropertyManagement.Infrastructure.Data;
 namespace PropertyManagement.Infrastructure.Data.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260912195659_AddRentalApplicationLeaseResidence")]
+    partial class AddRentalApplicationLeaseResidence
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -151,42 +154,6 @@ namespace PropertyManagement.Infrastructure.Data.Migrations
                     b.HasKey("UserId", "LoginProvider", "Name");
 
                     b.ToTable("AspNetUserTokens", (string)null);
-                });
-
-            modelBuilder.Entity("PropertyManagement.Domain.Entities.ApplicationStatusHistory", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid>("ChangedByUserId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("Comment")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int?>("FromStatus")
-                        .HasColumnType("int");
-
-                    b.Property<Guid>("RentalApplicationId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<int>("ToStatus")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ChangedByUserId");
-
-                    b.HasIndex("RentalApplicationId");
-
-                    b.ToTable("ApplicationStatusHistories");
                 });
 
             modelBuilder.Entity("PropertyManagement.Domain.Entities.Lease", b =>
@@ -533,25 +500,6 @@ namespace PropertyManagement.Infrastructure.Data.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("PropertyManagement.Domain.Entities.ApplicationStatusHistory", b =>
-                {
-                    b.HasOne("PropertyManagement.Domain.Entities.User", "ChangedByUser")
-                        .WithMany()
-                        .HasForeignKey("ChangedByUserId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("PropertyManagement.Domain.Entities.RentalApplication", "RentalApplication")
-                        .WithMany("StatusHistory")
-                        .HasForeignKey("RentalApplicationId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("ChangedByUser");
-
-                    b.Navigation("RentalApplication");
-                });
-
             modelBuilder.Entity("PropertyManagement.Domain.Entities.Lease", b =>
                 {
                     b.HasOne("PropertyManagement.Domain.Entities.RentalApplication", "RentalApplication")
@@ -630,8 +578,6 @@ namespace PropertyManagement.Infrastructure.Data.Migrations
                     b.Navigation("Lease");
 
                     b.Navigation("Residences");
-
-                    b.Navigation("StatusHistory");
                 });
 
             modelBuilder.Entity("PropertyManagement.Domain.Entities.Unit", b =>
