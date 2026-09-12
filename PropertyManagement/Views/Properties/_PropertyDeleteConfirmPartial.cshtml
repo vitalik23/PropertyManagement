@@ -1,0 +1,18 @@
+@using PropertyManagement.Models.PropertyViewModels
+@model PropertyDeleteViewModel
+
+<form data-modal-form data-refresh-url="/Properties/List" data-refresh-target="#properties-list" asp-controller="Properties" asp-action="Delete" method="post">
+    <input type="hidden" asp-for="Id" />
+    <input type="hidden" asp-for="Name" />
+    <div class="modal-header">
+        <h5 class="modal-title">Remove Property</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    </div>
+    <div class="modal-body">
+        <p>Are you sure you want to remove <strong>@Model.Name</strong>? This cannot be undone.</p>
+    </div>
+    <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="submit" class="btn btn-danger">Remove</button>
+    </div>
+</form>

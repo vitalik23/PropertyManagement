@@ -1,0 +1,27 @@
+@using PropertyManagement.Domain.Constants
+@{
+    Layout = "_Layout";
+}
+<div class="d-flex portal-layout">
+    <nav class="portal-sidebar">
+        <ul class="nav flex-column">
+            <li class="nav-item">
+                <a class="nav-link" asp-controller="Portal" asp-action="Profile">Profile</a>
+            </li>
+            @if (User.IsInRole(Roles.PropertyManager))
+            {
+                <li class="nav-item">
+                    <a class="nav-link" asp-controller="Properties" asp-action="Index">Properties</a>
+                </li>
+            }
+            <li class="nav-item">
+                <form asp-controller="Account" asp-action="Logout" method="post">
+                    <button type="submit" class="nav-link btn btn-link">Logout</button>
+                </form>
+            </li>
+        </ul>
+    </nav>
+    <div class="portal-content flex-grow-1">
+        @RenderBody()
+    </div>
+</div>

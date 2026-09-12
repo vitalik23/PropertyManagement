@@ -13,6 +13,10 @@ Give a single orientation point for the whole assessment: what the two roles can
 
 A property manager maintains properties and their units and reviews submitted applications; approval issues a 12-month lease. An applicant browses available units, fills out and submits a rental application (Applicant Info + Residence History + Summary), and can withdraw it or correct/resubmit one that was returned. Built with ASP.NET Core MVC + Razor (.NET 10), EF Core code-first against SQL Server, ASP.NET Identity, and Bogus-seeded idempotent sample data.
 
+## UI language rule
+
+**All text rendered in the application UI is English** — page titles, nav/sidebar labels, headings, button text, validation messages, everything a user sees in the browser. This holds regardless of what language the conversation with the developer/AI is conducted in — a request phrased or discussed in Ukrainian (or any other language) still means "build it, but the on-screen text is English." Learned the hard way: the Portal sidebar (`_PortalLayout.cshtml`) and its pages were first built with Ukrainian labels ("Профіль"/"Проперті"/"Логаут") because that's the language the feature was described in, then had to be corrected. Check any new view/partial for stray non-English strings before considering a UI task done.
+
 ## Current scaffold (ground truth — don't re-derive, just use)
 
 `C:\WorkProjects\Olexa\Clients Projects\PropertyManagement\` is a Clean Architecture skeleton, empty beyond the default MVC template:

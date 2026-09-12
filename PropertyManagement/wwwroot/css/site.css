@@ -29,3 +29,16 @@ body {
 .form-floating > .form-control-plaintext:focus::placeholder, .form-floating > .form-control:focus::placeholder {
   text-align: start;
 }
+
+.portal-sidebar {
+  width: 220px;
+  flex-shrink: 0;
+  border-right: 1px solid var(--bs-border-color);
+  padding: 1rem 0;
+}
+
+.portal-content {
+  padding: 1rem 1.5rem;
+  flex: 1 1 auto;
+  min-width: 0;
+}

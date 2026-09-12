@@ -22,6 +22,7 @@ builder.Services.AddIdentity<User, IdentityRole<Guid>>()
 
 builder.Services.AddScoped<IRoleSeeder, RoleSeeder>();
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IPropertyService, PropertyService>();
 
 var app = builder.Build();
 

@@ -74,4 +74,10 @@ public class AccountController(IAuthService authService) : Controller
         await authService.LogoutAsync();
         return RedirectToAction("Index", "Home");
     }
+
+    [HttpGet]
+    public IActionResult AccessDenied()
+    {
+        return View();
+    }
 }

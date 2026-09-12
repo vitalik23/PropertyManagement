@@ -1,0 +1,37 @@
+@using PropertyManagement.Domain.Entities
+@model List<Property>
+
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Address</th>
+            <th>City</th>
+            <th>State</th>
+            <th>Zip</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        @if (Model.Count == 0)
+        {
+            <tr>
+                <td colspan="6" class="text-center text-muted">No properties yet.</td>
+            </tr>
+        }
+        @foreach (var property in Model)
+        {
+            <tr>
+                <td>@property.Name</td>
+                <td>@property.AddressLine1@(string.IsNullOrEmpty(property.AddressLine2) ? "" : $", {property.AddressLine2}")</td>
+                <td>@property.City</td>
+                <td>@property.State</td>
+                <td>@property.ZipCode</td>
+                <td class="text-end">
+                    <a href="#" class="btn btn-sm btn-outline-secondary" data-modal-url="/Properties/Edit/@property.Id">Edit</a>
+                    <a href="#" class="btn btn-sm btn-outline-danger" data-modal-url="/Properties/Delete/@property.Id">Remove</a>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
