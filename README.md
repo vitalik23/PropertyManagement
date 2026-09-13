@@ -4,10 +4,10 @@ Full-stack ASP.NET Core MVC + Razor application for a property management compan
 
 ## Architecture
 
-- `PropertyManagement` — ASP.NET Core MVC web project (controllers, views, view components, static assets).
+- `PropertyManagement` — ASP.NET Core MVC web project. `Controllers/` (MVC controllers), `Api/` (the JSON API controller), `ViewModels/` (one subfolder per feature area — `Account`, `Property`, `Unit`, `Application`, `Review`, `Portal`, `Api`, etc.), `Validations/` (shared validation logic, e.g. photo upload constraints), `Views/`, `ViewComponents/`, `wwwroot/`.
 - `PropertyManagement.Domain` — entities, enums, and constants; no framework dependencies beyond ASP.NET Core Identity's base types.
-- `PropertyManagement.Infrastructure` — `ApplicationDbContext`, EF Core migrations, the service layer (`IXxxService`/`XxxService`) that all business logic and controller actions go through, and the startup seeders.
-- `PropertyManagement.Application` — reserved for cross-cutting application-layer concerns; currently unused as the service layer in Infrastructure has been sufficient.
+- `PropertyManagement.Application` — the service-layer contracts (`IPropertyService`, `IUnitService`, `IApplicationService`, `IBlobStorageService`, etc.) plus their result/DTO types (`UnitSaveResult`, `ApplicationActionResult`, `PagedResult<T>`, ...) — this is what the Web project actually programs against.
+- `PropertyManagement.Infrastructure` — `ApplicationDbContext`, EF Core migrations, the concrete service implementations (`PropertyService`, `UnitService`, `ApplicationService`, `BlobStorageService`, ...), and the startup seeders.
 - `PropertyManagement.Tests` — xUnit unit tests for the service layer's business rules, run against an in-memory SQLite database (no SQL Server dependency for tests).
 
 ## Prerequisites
@@ -34,6 +34,24 @@ Server=(localdb)\mssqllocaldb;Database=PropertyManagement-db;Trusted_Connection=
 ```
 `appsettings.json` intentionally has no `ConnectionStrings` section for non-Development environments — supply `ConnectionStrings:DefaultConnection` via an environment variable (`ConnectionStrings__DefaultConnection`), user-secrets, or an `appsettings.Production.json` you don't commit.
 
+## Configuration
+
+| Key | Required? | Purpose |
+|---|---|---|
+| `ConnectionStrings:DefaultConnection` | **Required** | SQL Server connection string. Already set for LocalDB in `appsettings.Development.json` — see above. |
+| `BlobStorage:ConnectionString` | Optional | Azure Storage connection string used to store Property/Unit photos (Portal → Properties/Units → **Photos**). |
+| `BlobStorage:ContainerName` | Optional | Blob container name; defaults to `property-management-photos` and is created automatically (with public read access) on first upload. |
+
+**Without `BlobStorage:ConnectionString` the app runs completely normally** — every page works, only actually uploading/deleting a photo fails with a clear "Azure Blob Storage connection string is not configured" message instead of the raw Azure SDK error. The Blob client is built lazily, so a missing/empty value never breaks anything outside the photo-upload actions themselves.
+
+`appsettings.json` has no `BlobStorage` section at all (nothing to edit there, and don't add a real connection string to it). Set it via .NET user-secrets instead, run from the `PropertyManagement/` project directory (where the `.csproj` with `UserSecretsId` lives):
+
+```
+cd PropertyManagement
+dotnet user-secrets set "BlobStorage:ConnectionString" "<your Azure Storage connection string>"
+dotnet user-secrets list   # confirms it actually saved
+```
+
 ## Seeded accounts
 
 Every seeded account uses the password:
@@ -48,6 +66,8 @@ Passw0rd!1
 | Applicant | 6 accounts with Bogus-generated emails — check the `AspNetUsers` table, or just register a new Applicant/Property Manager account from the sign-up page |
 
 The seeded data includes one rental application in each status (Draft, Submitted, Returned, Approved, Denied, Withdrawn), so logging in as `pm1@example.com` and opening **Applications** shows the full review lifecycle immediately, including a real 12-month lease issued for the Approved application.
+
+Any logged-in account can update its own email/phone number and change its password from **Portal → Profile**.
 
 ## Running tests
 
