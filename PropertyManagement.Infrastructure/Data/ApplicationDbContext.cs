@@ -16,6 +16,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public DbSet<Residence> Residences => Set<Residence>();
     public DbSet<Lease> Leases => Set<Lease>();
     public DbSet<ApplicationStatusHistory> ApplicationStatusHistories => Set<ApplicationStatusHistory>();
+    public DbSet<ApplicationApplicant> ApplicationApplicants => Set<ApplicationApplicant>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -60,6 +61,21 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
             .WithMany()
             .HasForeignKey(h => h.ChangedByUserId)
             .OnDelete(DeleteBehavior.Restrict);
+
+        builder.Entity<ApplicationApplicant>()
+            .HasOne(a => a.RentalApplication)
+            .WithMany(r => r.CoApplicants)
+            .HasForeignKey(a => a.RentalApplicationId);
+
+        builder.Entity<ApplicationApplicant>()
+            .HasOne(a => a.User)
+            .WithMany()
+            .HasForeignKey(a => a.UserId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.Entity<ApplicationApplicant>()
+            .HasIndex(a => new { a.RentalApplicationId, a.UserId })
+            .IsUnique();
     }
 
     public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)

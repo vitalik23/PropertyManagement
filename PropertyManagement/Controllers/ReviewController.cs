@@ -14,19 +14,11 @@ namespace PropertyManagement.Controllers;
 public class ReviewController(
     IApplicationService applicationService,
     IApplicationReviewService reviewService,
-    IPropertyService propertyService,
     UserManager<User> userManager) : Controller
 {
     private Guid CurrentUserId => Guid.Parse(userManager.GetUserId(User)!);
 
-    public async Task<IActionResult> Index(ApplicationStatus? status, Guid? propertyId)
-    {
-        var applications = await applicationService.GetFilteredApplicationsAsync(null, status, propertyId);
-        ViewBag.Properties = await propertyService.GetAllAsync();
-        ViewBag.SelectedStatus = status;
-        ViewBag.SelectedPropertyId = propertyId;
-        return View(applications);
-    }
+    public IActionResult Index() => View();
 
     public async Task<IActionResult> Details(Guid id)
     {

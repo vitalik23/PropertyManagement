@@ -1,70 +1,8 @@
-@using PropertyManagement.Domain.Entities
-@using PropertyManagement.Domain.Enums
-@model List<RentalApplication>
 @{
     Layout = "_PortalLayout";
     ViewData["Title"] = "Applications";
-    var properties = (List<Property>)ViewBag.Properties;
-    var selectedStatus = (ApplicationStatus?)ViewBag.SelectedStatus;
-    var selectedPropertyId = (Guid?)ViewBag.SelectedPropertyId;
 }
 
 <h1>Applications</h1>
 
-<form method="get" asp-controller="Review" asp-action="Index" class="row row-cols-auto g-2 align-items-end mb-3">
-    <div class="col">
-        <label class="form-label">Status</label>
-        <select name="status" class="form-select">
-            <option value="">All</option>
-            @foreach (var value in Enum.GetValues<ApplicationStatus>())
-            {
-                <option value="@value" selected="@(selectedStatus == value)">@value</option>
-            }
-        </select>
-    </div>
-    <div class="col">
-        <label class="form-label">Property</label>
-        <select name="propertyId" class="form-select">
-            <option value="">All</option>
-            @foreach (var property in properties)
-            {
-                <option value="@property.Id" selected="@(selectedPropertyId == property.Id)">@property.Name</option>
-            }
-        </select>
-    </div>
-    <div class="col">
-        <button type="submit" class="btn btn-secondary">Filter</button>
-    </div>
-</form>
-
-<table class="table table-striped">
-    <thead>
-        <tr>
-            <th>Property</th>
-            <th>Unit #</th>
-            <th>Applicant</th>
-            <th>Status</th>
-            <th></th>
-        </tr>
-    </thead>
-    <tbody>
-        @if (Model.Count == 0)
-        {
-            <tr>
-                <td colspan="5" class="text-center text-muted">No applications match this filter.</td>
-            </tr>
-        }
-        @foreach (var application in Model)
-        {
-            <tr>
-                <td>@application.Unit.Property.Name</td>
-                <td>@application.Unit.UnitNumber</td>
-                <td>@application.FullName (@application.ApplicantUser.Email)</td>
-                <td>@application.Status</td>
-                <td class="text-end">
-                    <a asp-controller="Review" asp-action="Details" asp-route-id="@application.Id" class="btn btn-sm btn-outline-primary">View</a>
-                </td>
-            </tr>
-        }
-    </tbody>
-</table>
+@await Component.InvokeAsync("ApplicationsGrid")

@@ -8,6 +8,7 @@
     </div>
     <div class="modal-body">
         <input type="hidden" asp-for="ApplicationId" />
+        <input type="hidden" asp-for="Version" />
         @if (Model.Id.HasValue)
         {
             <input type="hidden" asp-for="Id" />

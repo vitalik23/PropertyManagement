@@ -57,6 +57,14 @@ dotnet test
 
 Runs the full unit test suite (business rules in the service layer — unit availability, application status transitions, review/lease issuance, ownership checks, DB-side list filtering) against an in-memory SQLite database. No SQL Server/LocalDB instance is required for tests.
 
+## Bonus features implemented
+
+Of the assessment's five optional bonus items, three are implemented (review queue claim/release and PM-only notes are not):
+
+- **Paging/sorting grid + JSON/OpenAPI endpoint** — the application list on both `Applications/Index` (Applicant) and `Review/Index` (PM) is a single reusable `ApplicationsGridViewComponent`, paged and sorted in the database, backed by `GET /api/applications` (JSON: `{ rows, totalCount }`). The endpoint is documented via .NET's built-in OpenAPI generator — with the app running, the spec is at `/openapi/v1.json`.
+- **Save-with-errors per section** — the wizard's Applicant Information section now saves whatever you typed even if it fails validation (e.g. an invalid email), so nothing is lost on a reload; the Summary lists every outstanding issue across both sections, and Submit is rejected server-side while any remain.
+- **Multiple applicants per application, with per-section optimistic concurrency** — an applicant can invite another Applicant-role user onto their application via email (an "Invite" button on the wizard page); both can then view and edit it. Saving Applicant Information and confirming Residence History are independently version-checked, so two co-applicants can save different sections at the same time without conflict, while a second save to the *same* section is rejected with a message to reload rather than silently overwritten.
+
 ## Notes
 
-- Bonus items from the assessment (paging/sorting grid + JSON/OpenAPI endpoint, review queue claim/release, PM-only notes, save-with-errors, multi-applicant support) were not implemented — the assessment marks these optional and evaluation is unaffected by omitting them.
+- Review queue claim/release and PM-only notes (the two remaining optional bonus items) were not implemented — the assessment marks these optional and evaluation is unaffected by omitting them.

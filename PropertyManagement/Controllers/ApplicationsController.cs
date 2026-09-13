@@ -10,24 +10,11 @@ using PropertyManagement.Models.ApplicationViewModels;
 namespace PropertyManagement.Controllers;
 
 [Authorize(Roles = Roles.Applicant)]
-public class ApplicationsController(IApplicationService applicationService, IPropertyService propertyService, UserManager<User> userManager) : Controller
+public class ApplicationsController(IApplicationService applicationService, UserManager<User> userManager) : Controller
 {
     private Guid CurrentUserId => Guid.Parse(userManager.GetUserId(User)!);
 
-    public async Task<IActionResult> Index(ApplicationStatus? status, Guid? propertyId)
-    {
-        var applications = await applicationService.GetFilteredApplicationsAsync(CurrentUserId, status, propertyId);
-        ViewBag.Properties = await propertyService.GetAllAsync();
-        ViewBag.SelectedStatus = status;
-        ViewBag.SelectedPropertyId = propertyId;
-        return View(applications);
-    }
-
-    public async Task<IActionResult> ListPartial(ApplicationStatus? status, Guid? propertyId)
-    {
-        var applications = await applicationService.GetFilteredApplicationsAsync(CurrentUserId, status, propertyId);
-        return PartialView("_ApplicationsListPartial", applications);
-    }
+    public IActionResult Index() => View();
 
     public async Task<IActionResult> Start(Guid unitId)
     {
@@ -39,7 +26,7 @@ public class ApplicationsController(IApplicationService applicationService, IPro
     public async Task<IActionResult> Wizard(Guid id)
     {
         var application = await applicationService.GetByIdAsync(id);
-        if (application is null || application.ApplicantUserId != CurrentUserId)
+        if (application is null || !IsApplicantOnApplication(application, CurrentUserId))
         {
             return NotFound();
         }
@@ -52,7 +39,7 @@ public class ApplicationsController(IApplicationService applicationService, IPro
     public async Task<IActionResult> Wizard(RentalApplicationWizardViewModel model, string submitAction)
     {
         var application = await applicationService.GetByIdAsync(model.Id);
-        if (application is null || application.ApplicantUserId != CurrentUserId)
+        if (application is null || !IsApplicantOnApplication(application, CurrentUserId))
         {
             return NotFound();
         }
@@ -71,17 +58,10 @@ public class ApplicationsController(IApplicationService applicationService, IPro
 
         if (submitAction == "continue" && model.CurrentSection == WizardSection.ApplicantInfo)
         {
-            if (!ModelState.IsValid)
-            {
-                var invalidModel = BuildViewModel(application, WizardSection.ApplicantInfo);
-                invalidModel.FullName = model.FullName;
-                invalidModel.PhoneNumber = model.PhoneNumber;
-                invalidModel.Email = model.Email;
-                invalidModel.CurrentAddress = model.CurrentAddress;
-                return View(invalidModel);
-            }
-
-            var result = await applicationService.SaveApplicantInfoAsync(application.Id, CurrentUserId, model.FullName, model.PhoneNumber, model.Email, model.CurrentAddress);
+            // Save whatever was submitted, valid or not (save-with-errors) — the section is only
+            // ever rejected outright when the application itself is no longer editable/owned, or
+            // when another applicant already saved this section first (stale version).
+            var result = await applicationService.SaveApplicantInfoAsync(application.Id, CurrentUserId, model.FullName, model.PhoneNumber, model.Email, model.CurrentAddress, model.ApplicantInfoVersion);
             if (!result.Succeeded)
             {
                 ModelState.AddModelError(string.Empty, result.Error!);
@@ -89,12 +69,18 @@ public class ApplicationsController(IApplicationService applicationService, IPro
             }
 
             var refreshed = await applicationService.GetByIdAsync(application.Id);
+
+            if (!ModelState.IsValid)
+            {
+                return View(BuildViewModel(refreshed!, WizardSection.ApplicantInfo));
+            }
+
             return View(BuildViewModel(refreshed!, WizardSection.ResidenceHistory));
         }
 
         if (submitAction == "continue" && model.CurrentSection == WizardSection.ResidenceHistory)
         {
-            var result = await applicationService.ConfirmResidenceHistoryAsync(application.Id, CurrentUserId);
+            var result = await applicationService.ConfirmResidenceHistoryAsync(application.Id, CurrentUserId, model.ResidenceHistoryVersion);
             if (!result.Succeeded)
             {
                 ModelState.AddModelError(string.Empty, result.Error!);
@@ -125,7 +111,7 @@ public class ApplicationsController(IApplicationService applicationService, IPro
     public async Task<IActionResult> ResidenceList(Guid applicationId)
     {
         var application = await applicationService.GetByIdAsync(applicationId);
-        if (application is null || application.ApplicantUserId != CurrentUserId)
+        if (application is null || !IsApplicantOnApplication(application, CurrentUserId))
         {
             return NotFound();
         }
@@ -134,10 +120,53 @@ public class ApplicationsController(IApplicationService applicationService, IPro
     }
 
     [HttpGet]
+    public async Task<IActionResult> CoApplicantsList(Guid applicationId)
+    {
+        var application = await applicationService.GetByIdAsync(applicationId);
+        if (application is null || !IsApplicantOnApplication(application, CurrentUserId))
+        {
+            return NotFound();
+        }
+
+        return PartialView("_CoApplicantsListPartial", BuildViewModel(application, WizardSection.Summary));
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> InviteCoApplicant(Guid applicationId)
+    {
+        var application = await applicationService.GetByIdAsync(applicationId);
+        if (application is null || !IsApplicantOnApplication(application, CurrentUserId) || !IsEditable(application))
+        {
+            return NotFound();
+        }
+
+        return PartialView("_InviteCoApplicantPartial", new InviteCoApplicantViewModel { ApplicationId = applicationId });
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> InviteCoApplicant(InviteCoApplicantViewModel model)
+    {
+        if (!ModelState.IsValid)
+        {
+            return PartialView("_InviteCoApplicantPartial", model);
+        }
+
+        var result = await applicationService.AddCoApplicantAsync(model.ApplicationId, CurrentUserId, model.Email);
+        if (!result.Succeeded)
+        {
+            ModelState.AddModelError(string.Empty, result.Error!);
+            return PartialView("_InviteCoApplicantPartial", model);
+        }
+
+        return Json(new { success = true });
+    }
+
+    [HttpGet]
     public async Task<IActionResult> AddResidence(Guid applicationId)
     {
         var application = await applicationService.GetByIdAsync(applicationId);
-        if (application is null || application.ApplicantUserId != CurrentUserId || !IsEditable(application))
+        if (application is null || !IsApplicantOnApplication(application, CurrentUserId) || !IsEditable(application))
         {
             return NotFound();
         }
@@ -168,7 +197,7 @@ public class ApplicationsController(IApplicationService applicationService, IPro
     public async Task<IActionResult> EditResidence(Guid id)
     {
         var residence = await applicationService.GetResidenceAsync(id);
-        if (residence is null || residence.RentalApplication.ApplicantUserId != CurrentUserId || !IsEditable(residence.RentalApplication))
+        if (residence is null || !IsApplicantOnApplication(residence.RentalApplication, CurrentUserId) || !IsEditable(residence.RentalApplication))
         {
             return NotFound();
         }
@@ -181,7 +210,8 @@ public class ApplicationsController(IApplicationService applicationService, IPro
             LandlordName = residence.LandlordName,
             LandlordPhone = residence.LandlordPhone,
             MoveInDate = residence.MoveInDate,
-            MoveOutDate = residence.MoveOutDate
+            MoveOutDate = residence.MoveOutDate,
+            Version = residence.Version
         };
 
         return PartialView("_ResidenceFormPartial", model);
@@ -196,7 +226,7 @@ public class ApplicationsController(IApplicationService applicationService, IPro
             return PartialView("_ResidenceFormPartial", model);
         }
 
-        var result = await applicationService.UpdateResidenceAsync(model.Id!.Value, CurrentUserId, model.Address, model.LandlordName, model.LandlordPhone, model.MoveInDate, model.MoveOutDate);
+        var result = await applicationService.UpdateResidenceAsync(model.Id!.Value, CurrentUserId, model.Address, model.LandlordName, model.LandlordPhone, model.MoveInDate, model.MoveOutDate, model.Version);
         if (!result.Succeeded)
         {
             ModelState.AddModelError(nameof(model.MoveOutDate), result.Error!);
@@ -210,7 +240,7 @@ public class ApplicationsController(IApplicationService applicationService, IPro
     public async Task<IActionResult> DeleteResidence(Guid id)
     {
         var residence = await applicationService.GetResidenceAsync(id);
-        if (residence is null || residence.RentalApplication.ApplicantUserId != CurrentUserId || !IsEditable(residence.RentalApplication))
+        if (residence is null || !IsApplicantOnApplication(residence.RentalApplication, CurrentUserId) || !IsEditable(residence.RentalApplication))
         {
             return NotFound();
         }
@@ -219,7 +249,8 @@ public class ApplicationsController(IApplicationService applicationService, IPro
         {
             Id = residence.Id,
             ApplicationId = residence.RentalApplicationId,
-            Address = residence.Address
+            Address = residence.Address,
+            Version = residence.Version
         });
     }
 
@@ -227,7 +258,7 @@ public class ApplicationsController(IApplicationService applicationService, IPro
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> DeleteResidence(ResidenceDeleteViewModel model)
     {
-        var result = await applicationService.DeleteResidenceAsync(model.Id, CurrentUserId);
+        var result = await applicationService.DeleteResidenceAsync(model.Id, CurrentUserId, model.Version);
         if (!result.Succeeded)
         {
             return NotFound();
@@ -240,7 +271,7 @@ public class ApplicationsController(IApplicationService applicationService, IPro
     public async Task<IActionResult> Withdraw(Guid id)
     {
         var application = await applicationService.GetByIdAsync(id);
-        if (application is null || application.ApplicantUserId != CurrentUserId)
+        if (application is null || !IsApplicantOnApplication(application, CurrentUserId))
         {
             return NotFound();
         }
@@ -267,14 +298,21 @@ public class ApplicationsController(IApplicationService applicationService, IPro
 
     private RentalApplicationWizardViewModel BuildViewModel(RentalApplication application, WizardSection section)
     {
+        var applicantInfoErrors = applicationService.ValidateApplicantInfo(application);
+        var residenceErrors = applicationService.ValidateResidenceHistory(application);
+
         return new RentalApplicationWizardViewModel
         {
             Id = application.Id,
             CurrentSection = section,
             IsEditable = IsEditable(application),
             UnitDisplay = $"{application.Unit.Property.Name} — Unit {application.Unit.UnitNumber}",
-            ApplicantInfoSaved = application.ApplicantInfoCompletedAt.HasValue,
-            ResidenceHistorySaved = application.ResidenceHistoryCompletedAt.HasValue,
+            ApplicantInfoSaved = applicantInfoErrors.Count == 0,
+            ResidenceHistorySaved = residenceErrors.Count == 0,
+            BlockingIssues = [.. applicantInfoErrors, .. residenceErrors],
+            ApplicantInfoVersion = application.ApplicantInfoVersion,
+            ResidenceHistoryVersion = application.ResidenceHistoryVersion,
+            CoApplicantEmails = application.CoApplicants.Select(c => c.User.Email ?? string.Empty).ToList(),
             FullName = application.FullName,
             PhoneNumber = application.PhoneNumber,
             Email = application.Email,
@@ -317,4 +355,7 @@ public class ApplicationsController(IApplicationService applicationService, IPro
 
     private static bool IsEditable(RentalApplication application)
         => application.Status is ApplicationStatus.Draft or ApplicationStatus.Returned;
+
+    private static bool IsApplicantOnApplication(RentalApplication application, Guid userId)
+        => application.ApplicantUserId == userId || application.CoApplicants.Any(c => c.UserId == userId);
 }

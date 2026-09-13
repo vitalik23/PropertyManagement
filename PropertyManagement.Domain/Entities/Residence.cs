@@ -16,4 +16,8 @@ public class Residence : IBaseEntity
     public string LandlordPhone { get; set; } = string.Empty;
     public DateOnly MoveInDate { get; set; }
     public DateOnly MoveOutDate { get; set; }
+
+    // Manually managed optimistic concurrency token (see RentalApplication for why not EF's
+    // native rowversion: portability across the Sqlite provider used by the unit tests).
+    public int Version { get; set; }
 }

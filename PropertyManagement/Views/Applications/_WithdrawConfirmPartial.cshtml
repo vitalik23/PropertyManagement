@@ -1,7 +1,7 @@
 @using PropertyManagement.Models.ApplicationViewModels
 @model WithdrawConfirmViewModel
 
-<form data-modal-form data-refresh-url="/Applications/ListPartial" data-refresh-target="#applications-list" asp-controller="Applications" asp-action="Withdraw" method="post">
+<form data-modal-form asp-controller="Applications" asp-action="Withdraw" method="post">
     <input type="hidden" asp-for="Id" />
     <div class="modal-header">
         <h5 class="modal-title">Withdraw Application</h5>

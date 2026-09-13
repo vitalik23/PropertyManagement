@@ -1,3 +1,5 @@
+using Microsoft.AspNetCore.Identity;
+using PropertyManagement.Domain.Constants;
 using PropertyManagement.Domain.Entities;
 using PropertyManagement.Domain.Enums;
 using PropertyManagement.Infrastructure.Data;
@@ -57,6 +59,16 @@ public static class TestDataBuilder
         return user;
     }
 
+    public static async Task<User> CreateApplicantUserAsync(ApplicationDbContext db, UserManager<User> userManager, string email)
+    {
+        await TestUserManagerFactory.EnsureApplicantRoleAsync(db);
+
+        var user = new User { UserName = email, Email = email };
+        await userManager.CreateAsync(user);
+        await userManager.AddToRoleAsync(user, Roles.Applicant);
+        return user;
+    }
+
     public static async Task<RentalApplication> CreateApplicationAsync(
         ApplicationDbContext db,
         Unit unit,
@@ -79,7 +91,30 @@ public static class TestDataBuilder
 
         db.RentalApplications.Add(application);
         await db.SaveChangesAsync();
+
+        if (sectionsComplete)
+        {
+            await CreateResidenceAsync(db, application);
+        }
+
         return application;
+    }
+
+    public static async Task<Residence> CreateResidenceAsync(ApplicationDbContext db, RentalApplication application)
+    {
+        var residence = new Residence
+        {
+            RentalApplicationId = application.Id,
+            Address = "10 Prior Ave",
+            LandlordName = "Pat Landlord",
+            LandlordPhone = "555-0200",
+            MoveInDate = DateOnly.FromDateTime(DateTime.UtcNow.AddYears(-3)),
+            MoveOutDate = DateOnly.FromDateTime(DateTime.UtcNow.AddYears(-1))
+        };
+
+        db.Residences.Add(residence);
+        await db.SaveChangesAsync();
+        return residence;
     }
 
     public static async Task<Lease> CreateLeaseAsync(ApplicationDbContext db, Unit unit, RentalApplication application, DateOnly startDate, DateOnly endDate)

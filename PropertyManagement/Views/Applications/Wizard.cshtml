@@ -8,9 +8,15 @@
 <h1>Rental Application</h1>
 <p class="text-muted">@Model.UnitDisplay</p>
 
+<div id="co-applicants-list">
+    @await Html.PartialAsync("_CoApplicantsListPartial", Model)
+</div>
+
 <form asp-controller="Applications" asp-action="Wizard" method="post">
     <input type="hidden" asp-for="Id" />
     <input type="hidden" asp-for="CurrentSection" />
+    <input type="hidden" asp-for="ApplicantInfoVersion" />
+    <input type="hidden" asp-for="ResidenceHistoryVersion" />
     <div asp-validation-summary="ModelOnly" class="text-danger"></div>
 
     @if (Model.CurrentSection == WizardSection.ApplicantInfo)

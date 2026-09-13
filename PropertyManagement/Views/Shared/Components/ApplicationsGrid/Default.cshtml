@@ -1,0 +1,60 @@
+@using PropertyManagement.ViewComponents
+@model ApplicationsGridViewModel
+
+<div id="applications-grid"
+     data-api-url="/api/applications"
+     data-detail-url-template="@Model.DetailUrlTemplate"
+     data-is-pm="@Model.IsPropertyManager.ToString().ToLowerInvariant()"
+     data-can-withdraw="@Model.CanWithdraw.ToString().ToLowerInvariant()">
+
+    <div class="row row-cols-auto g-2 align-items-end mb-3">
+        <div class="col">
+            <label class="form-label">Status</label>
+            <select class="form-select" data-grid-filter="status">
+                <option value="">All</option>
+                @foreach (var value in Model.Statuses)
+                {
+                    <option value="@value">@value</option>
+                }
+            </select>
+        </div>
+        <div class="col">
+            <label class="form-label">Property</label>
+            <select class="form-select" data-grid-filter="propertyId">
+                <option value="">All</option>
+                @foreach (var property in Model.Properties)
+                {
+                    <option value="@property.Id">@property.Name</option>
+                }
+            </select>
+        </div>
+    </div>
+
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th role="button" data-grid-sort="property">Property</th>
+                <th role="button" data-grid-sort="unit">Unit #</th>
+                @if (Model.IsPropertyManager)
+                {
+                    <th>Applicant</th>
+                }
+                <th role="button" data-grid-sort="status">Status</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody id="applications-grid-body">
+            <tr>
+                <td colspan="5" class="text-center text-muted">Loading&hellip;</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div class="d-flex justify-content-between align-items-center">
+        <span id="applications-grid-summary" class="text-muted"></span>
+        <div>
+            <button type="button" class="btn btn-sm btn-outline-secondary" data-grid-page="prev">Prev</button>
+            <button type="button" class="btn btn-sm btn-outline-secondary" data-grid-page="next">Next</button>
+        </div>
+    </div>
+</div>

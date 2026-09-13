@@ -1,4 +1,5 @@
-using System.ComponentModel.DataAnnotations;
+using PropertyManagement.Domain.Validation;
+using PropertyManagement.Infrastructure.Services;
 
 namespace PropertyManagement.Models.ApplicationViewModels;
 
@@ -9,7 +10,7 @@ public enum WizardSection
     Summary = 2
 }
 
-public class RentalApplicationWizardViewModel
+public class RentalApplicationWizardViewModel : ApplicantInfoValidationTarget
 {
     public Guid Id { get; set; }
     public WizardSection CurrentSection { get; set; }
@@ -17,22 +18,10 @@ public class RentalApplicationWizardViewModel
     public string UnitDisplay { get; set; } = string.Empty;
     public bool ApplicantInfoSaved { get; set; }
     public bool ResidenceHistorySaved { get; set; }
-
-    [Required]
-    [Display(Name = "Full name")]
-    public string FullName { get; set; } = string.Empty;
-
-    [Required]
-    [Display(Name = "Phone number")]
-    public string PhoneNumber { get; set; } = string.Empty;
-
-    [Required]
-    [EmailAddress]
-    public string Email { get; set; } = string.Empty;
-
-    [Required]
-    [Display(Name = "Current address")]
-    public string CurrentAddress { get; set; } = string.Empty;
+    public List<SectionValidationError> BlockingIssues { get; set; } = [];
+    public int ApplicantInfoVersion { get; set; }
+    public int ResidenceHistoryVersion { get; set; }
+    public List<string> CoApplicantEmails { get; set; } = [];
 
     public List<ResidenceListItem> Residences { get; set; } = [];
 }

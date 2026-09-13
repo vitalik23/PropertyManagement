@@ -18,7 +18,15 @@
 <h5>Residence History</h5>
 @await Component.InvokeAsync("ResidenceList", new { applicationId = Model.Id, isEditable = false })
 
-@if (Model.IsEditable && (!Model.ApplicantInfoSaved || !Model.ResidenceHistorySaved))
+@if (Model.IsEditable && Model.BlockingIssues.Count > 0)
 {
-    <div class="alert alert-warning">Please complete both sections above before submitting.</div>
+    <div class="alert alert-warning">
+        <p class="mb-1">Please resolve the following before submitting:</p>
+        <ul class="mb-0">
+            @foreach (var issue in Model.BlockingIssues)
+            {
+                <li>@issue.Section @(string.IsNullOrEmpty(issue.Field) ? "" : $"— {issue.Field}"): @issue.Message</li>
+            }
+        </ul>
+    </div>
 }

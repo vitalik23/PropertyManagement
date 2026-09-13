@@ -29,4 +29,6 @@ public class ResidenceFormViewModel
     [Display(Name = "Move-out date")]
     [DataType(DataType.Date)]
     public DateOnly MoveOutDate { get; set; }
+
+    public int Version { get; set; }
 }

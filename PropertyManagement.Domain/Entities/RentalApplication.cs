@@ -25,7 +25,14 @@ public class RentalApplication : IBaseEntity
     public DateTime? ApplicantInfoCompletedAt { get; set; }
     public DateTime? ResidenceHistoryCompletedAt { get; set; }
 
+    // Manually managed, per-section optimistic concurrency tokens (not EF IsConcurrencyToken()
+    // columns — see ApplicationService for why: a shared EF concurrency token would check every
+    // token on any save, coupling the two sections' concurrency together).
+    public int ApplicantInfoVersion { get; set; }
+    public int ResidenceHistoryVersion { get; set; }
+
     public ICollection<Residence> Residences { get; set; } = new List<Residence>();
+    public ICollection<ApplicationApplicant> CoApplicants { get; set; } = new List<ApplicationApplicant>();
     public Lease? Lease { get; set; }
     public ICollection<ApplicationStatusHistory> StatusHistory { get; set; } = new List<ApplicationStatusHistory>();
 }

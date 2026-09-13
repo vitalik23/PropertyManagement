@@ -1,4 +1,6 @@
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using PropertyManagement.Domain.Entities;
 using PropertyManagement.Domain.Enums;
 using PropertyManagement.Infrastructure.Services;
 
@@ -7,11 +9,13 @@ namespace PropertyManagement.Tests.Services;
 public class ApplicationServiceTests : IDisposable
 {
     private readonly TestDbContextFactory _factory = new();
+    private readonly UserManager<User> _userManager;
     private readonly ApplicationService _service;
 
     public ApplicationServiceTests()
     {
-        _service = new ApplicationService(_factory.Context, new UnitAvailabilityService(_factory.Context));
+        _userManager = TestUserManagerFactory.Create(_factory.Context);
+        _service = new ApplicationService(_factory.Context, new UnitAvailabilityService(_factory.Context), _userManager);
     }
 
     public void Dispose() => _factory.Dispose();
@@ -46,7 +50,7 @@ public class ApplicationServiceTests : IDisposable
         var result = await _service.SubmitAsync(application.Id, applicant.Id);
 
         Assert.False(result.Succeeded);
-        Assert.Equal("Please complete both sections before submitting.", result.Error);
+        Assert.Equal("Please resolve all outstanding issues before submitting.", result.Error);
         var updated = await db.RentalApplications.FirstAsync(a => a.Id == application.Id);
         Assert.Equal(ApplicationStatus.Draft, updated.Status);
     }
@@ -132,7 +136,7 @@ public class ApplicationServiceTests : IDisposable
         var intruder = await TestDataBuilder.CreateUserAsync(db, "intruder@test.com");
         var application = await TestDataBuilder.CreateApplicationAsync(db, unit, owner, ApplicationStatus.Draft);
 
-        var result = await _service.SaveApplicantInfoAsync(application.Id, intruder.Id, "Hacked Name", "555-9999", "hacked@test.com", "Nowhere");
+        var result = await _service.SaveApplicantInfoAsync(application.Id, intruder.Id, "Hacked Name", "555-9999", "hacked@test.com", "Nowhere", expectedVersion: 0);
 
         Assert.False(result.Succeeded);
         var updated = await db.RentalApplications.FirstAsync(a => a.Id == application.Id);
@@ -237,5 +241,219 @@ public class ApplicationServiceTests : IDisposable
 
         Assert.Single(results);
         Assert.Equal(matching.Id, results[0].Id);
+    }
+
+    [Fact]
+    public async Task SaveApplicantInfoAsync_WithInvalidEmail_StillPersistsTheAttemptedValue()
+    {
+        var db = _factory.Context;
+        var unit = await TestDataBuilder.CreateUnitAsync(db);
+        var applicant = await TestDataBuilder.CreateUserAsync(db);
+        var application = await TestDataBuilder.CreateApplicationAsync(db, unit, applicant, ApplicationStatus.Draft, sectionsComplete: false);
+
+        var result = await _service.SaveApplicantInfoAsync(application.Id, applicant.Id, "Jordan Applicant", "555-0100", "not-an-email", "42 Current St", expectedVersion: 0);
+
+        Assert.True(result.Succeeded);
+        var updated = await db.RentalApplications.FirstAsync(a => a.Id == application.Id);
+        Assert.Equal("not-an-email", updated.Email);
+    }
+
+    [Fact]
+    public async Task ValidateApplicantInfo_WithInvalidEmail_ReturnsFieldError()
+    {
+        var db = _factory.Context;
+        var unit = await TestDataBuilder.CreateUnitAsync(db);
+        var applicant = await TestDataBuilder.CreateUserAsync(db);
+        var application = await TestDataBuilder.CreateApplicationAsync(db, unit, applicant, ApplicationStatus.Draft, sectionsComplete: false);
+        application.Email = "not-an-email";
+
+        var errors = _service.ValidateApplicantInfo(application);
+
+        Assert.Contains(errors, e => e.Field == nameof(application.Email));
+    }
+
+    [Fact]
+    public async Task ValidateResidenceHistory_WithNoResidences_ReturnsBlockingError()
+    {
+        var db = _factory.Context;
+        var unit = await TestDataBuilder.CreateUnitAsync(db);
+        var applicant = await TestDataBuilder.CreateUserAsync(db);
+        var application = await TestDataBuilder.CreateApplicationAsync(db, unit, applicant, ApplicationStatus.Draft, sectionsComplete: false);
+
+        var errors = _service.ValidateResidenceHistory(application);
+
+        Assert.Single(errors);
+    }
+
+    [Fact]
+    public async Task ValidateResidenceHistory_WithAtLeastOneResidence_ReturnsNoErrors()
+    {
+        var db = _factory.Context;
+        var unit = await TestDataBuilder.CreateUnitAsync(db);
+        var applicant = await TestDataBuilder.CreateUserAsync(db);
+        var application = await TestDataBuilder.CreateApplicationAsync(db, unit, applicant, ApplicationStatus.Draft, sectionsComplete: false);
+        await TestDataBuilder.CreateResidenceAsync(db, application);
+
+        var reloaded = await db.RentalApplications.Include(a => a.Residences).FirstAsync(a => a.Id == application.Id);
+        var errors = _service.ValidateResidenceHistory(reloaded);
+
+        Assert.Empty(errors);
+    }
+
+    [Fact]
+    public async Task SubmitAsync_MarkedCompletedButNowMissingResidences_StillRejected()
+    {
+        // ApplicantInfoCompletedAt/ResidenceHistoryCompletedAt are "visited" markers, not
+        // validity guarantees once save-with-errors allows saving invalid/incomplete sections —
+        // Submit must re-validate live state, not trust a stale completed timestamp.
+        var db = _factory.Context;
+        var unit = await TestDataBuilder.CreateUnitAsync(db);
+        var applicant = await TestDataBuilder.CreateUserAsync(db);
+        var application = await TestDataBuilder.CreateApplicationAsync(db, unit, applicant, ApplicationStatus.Draft, sectionsComplete: false);
+        application.ApplicantInfoCompletedAt = DateTime.UtcNow;
+        application.ResidenceHistoryCompletedAt = DateTime.UtcNow;
+        await db.SaveChangesAsync();
+
+        var result = await _service.SubmitAsync(application.Id, applicant.Id);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal("Please resolve all outstanding issues before submitting.", result.Error);
+    }
+
+    [Fact]
+    public async Task AddCoApplicantAsync_ValidApplicantEmail_AddsCoApplicant()
+    {
+        var db = _factory.Context;
+        var unit = await TestDataBuilder.CreateUnitAsync(db);
+        var primary = await TestDataBuilder.CreateApplicantUserAsync(db, _userManager, "primary1@test.com");
+        var coApplicant = await TestDataBuilder.CreateApplicantUserAsync(db, _userManager, "co1@test.com");
+        var application = await TestDataBuilder.CreateApplicationAsync(db, unit, primary, ApplicationStatus.Draft);
+
+        var result = await _service.AddCoApplicantAsync(application.Id, primary.Id, "co1@test.com");
+
+        Assert.True(result.Succeeded);
+        var coApplicants = await db.ApplicationApplicants.Where(c => c.RentalApplicationId == application.Id).ToListAsync();
+        Assert.Single(coApplicants);
+        Assert.Equal(coApplicant.Id, coApplicants[0].UserId);
+    }
+
+    [Fact]
+    public async Task AddCoApplicantAsync_UnknownEmail_Fails()
+    {
+        var db = _factory.Context;
+        var unit = await TestDataBuilder.CreateUnitAsync(db);
+        var primary = await TestDataBuilder.CreateApplicantUserAsync(db, _userManager, "primary2@test.com");
+        var application = await TestDataBuilder.CreateApplicationAsync(db, unit, primary, ApplicationStatus.Draft);
+
+        var result = await _service.AddCoApplicantAsync(application.Id, primary.Id, "doesnotexist@test.com");
+
+        Assert.False(result.Succeeded);
+        Assert.Empty(await db.ApplicationApplicants.Where(c => c.RentalApplicationId == application.Id).ToListAsync());
+    }
+
+    [Fact]
+    public async Task AddCoApplicantAsync_AlreadyOnApplication_Fails()
+    {
+        var db = _factory.Context;
+        var unit = await TestDataBuilder.CreateUnitAsync(db);
+        var primary = await TestDataBuilder.CreateApplicantUserAsync(db, _userManager, "primary3@test.com");
+        await TestDataBuilder.CreateApplicantUserAsync(db, _userManager, "co3@test.com");
+        var application = await TestDataBuilder.CreateApplicationAsync(db, unit, primary, ApplicationStatus.Draft);
+        await _service.AddCoApplicantAsync(application.Id, primary.Id, "co3@test.com");
+
+        var result = await _service.AddCoApplicantAsync(application.Id, primary.Id, "co3@test.com");
+
+        Assert.False(result.Succeeded);
+        Assert.Single(await db.ApplicationApplicants.Where(c => c.RentalApplicationId == application.Id).ToListAsync());
+    }
+
+    [Fact]
+    public async Task CoApplicant_CanSaveApplicantInfo_LikePrimaryApplicant()
+    {
+        var db = _factory.Context;
+        var unit = await TestDataBuilder.CreateUnitAsync(db);
+        var primary = await TestDataBuilder.CreateApplicantUserAsync(db, _userManager, "primary4@test.com");
+        var coApplicant = await TestDataBuilder.CreateApplicantUserAsync(db, _userManager, "co4@test.com");
+        var application = await TestDataBuilder.CreateApplicationAsync(db, unit, primary, ApplicationStatus.Draft);
+        await _service.AddCoApplicantAsync(application.Id, primary.Id, "co4@test.com");
+
+        var result = await _service.SaveApplicantInfoAsync(application.Id, coApplicant.Id, "Co Name", "555-1111", "co4@test.com", "1 Co St", expectedVersion: 0);
+
+        Assert.True(result.Succeeded);
+        var updated = await db.RentalApplications.FirstAsync(a => a.Id == application.Id);
+        Assert.Equal("Co Name", updated.FullName);
+    }
+
+    [Fact]
+    public async Task SaveApplicantInfoAsync_StaleVersion_RejectedWithoutOverwriting()
+    {
+        var db = _factory.Context;
+        var unit = await TestDataBuilder.CreateUnitAsync(db);
+        var applicant = await TestDataBuilder.CreateUserAsync(db);
+        var application = await TestDataBuilder.CreateApplicationAsync(db, unit, applicant, ApplicationStatus.Draft);
+
+        await _service.SaveApplicantInfoAsync(application.Id, applicant.Id, "First Save", "555-0001", "first@test.com", "1 First St", expectedVersion: 0);
+
+        var result = await _service.SaveApplicantInfoAsync(application.Id, applicant.Id, "Second Save", "555-0002", "second@test.com", "2 Second St", expectedVersion: 0);
+
+        Assert.False(result.Succeeded);
+        var updated = await db.RentalApplications.FirstAsync(a => a.Id == application.Id);
+        Assert.Equal("First Save", updated.FullName);
+        Assert.Equal(1, updated.ApplicantInfoVersion);
+    }
+
+    [Fact]
+    public async Task SaveApplicantInfoAsync_CorrectVersion_SucceedsAndIncrementsVersion()
+    {
+        var db = _factory.Context;
+        var unit = await TestDataBuilder.CreateUnitAsync(db);
+        var applicant = await TestDataBuilder.CreateUserAsync(db);
+        var application = await TestDataBuilder.CreateApplicationAsync(db, unit, applicant, ApplicationStatus.Draft);
+
+        await _service.SaveApplicantInfoAsync(application.Id, applicant.Id, "First Save", "555-0001", "first@test.com", "1 First St", expectedVersion: 0);
+        var result = await _service.SaveApplicantInfoAsync(application.Id, applicant.Id, "Second Save", "555-0002", "second@test.com", "2 Second St", expectedVersion: 1);
+
+        Assert.True(result.Succeeded);
+        var updated = await db.RentalApplications.FirstAsync(a => a.Id == application.Id);
+        Assert.Equal("Second Save", updated.FullName);
+        Assert.Equal(2, updated.ApplicantInfoVersion);
+    }
+
+    [Fact]
+    public async Task SavingApplicantInfo_DoesNotInterfereWith_ConcurrentResidenceHistoryConfirm()
+    {
+        // Direct check of the spec's "saves to different sections must not interfere" requirement:
+        // both sections start at version 0 and are saved independently in the same "turn" — neither
+        // should be rejected because of the other's write.
+        var db = _factory.Context;
+        var unit = await TestDataBuilder.CreateUnitAsync(db);
+        var applicant = await TestDataBuilder.CreateUserAsync(db);
+        var application = await TestDataBuilder.CreateApplicationAsync(db, unit, applicant, ApplicationStatus.Draft);
+
+        var infoResult = await _service.SaveApplicantInfoAsync(application.Id, applicant.Id, "Name", "555-0000", "e@test.com", "Addr", expectedVersion: 0);
+        var residenceResult = await _service.ConfirmResidenceHistoryAsync(application.Id, applicant.Id, expectedVersion: 0);
+
+        Assert.True(infoResult.Succeeded);
+        Assert.True(residenceResult.Succeeded);
+    }
+
+    [Fact]
+    public async Task UpdateResidenceAsync_StaleVersion_Rejected()
+    {
+        var db = _factory.Context;
+        var unit = await TestDataBuilder.CreateUnitAsync(db);
+        var applicant = await TestDataBuilder.CreateUserAsync(db);
+        var application = await TestDataBuilder.CreateApplicationAsync(db, unit, applicant, ApplicationStatus.Draft);
+        var residence = await TestDataBuilder.CreateResidenceAsync(db, application);
+
+        var moveIn = DateOnly.FromDateTime(DateTime.UtcNow.AddYears(-2));
+        var moveOut = DateOnly.FromDateTime(DateTime.UtcNow.AddYears(-1));
+
+        await _service.UpdateResidenceAsync(residence.Id, applicant.Id, "First Update", "LL", "555", moveIn, moveOut, expectedVersion: 0);
+        var result = await _service.UpdateResidenceAsync(residence.Id, applicant.Id, "Second Update", "LL2", "555", moveIn, moveOut, expectedVersion: 0);
+
+        Assert.False(result.Succeeded);
+        var updated = await db.Residences.FirstAsync(r => r.Id == residence.Id);
+        Assert.Equal("First Update", updated.Address);
     }
 }

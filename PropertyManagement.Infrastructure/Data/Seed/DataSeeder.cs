@@ -153,7 +153,8 @@ public class DataSeeder(
             fullName: _faker.Name.FullName(),
             phoneNumber: _faker.Phone.PhoneNumber("###-###-####"),
             email: _faker.Internet.Email(),
-            currentAddress: _faker.Address.FullAddress());
+            currentAddress: _faker.Address.FullAddress(),
+            expectedVersion: 0);
 
         await applicationService.AddResidenceAsync(
             application.Id, applicantId,
@@ -163,7 +164,7 @@ public class DataSeeder(
             moveInDate: DateOnly.FromDateTime(DateTime.UtcNow.AddYears(-3)),
             moveOutDate: DateOnly.FromDateTime(DateTime.UtcNow.AddYears(-1)));
 
-        await applicationService.ConfirmResidenceHistoryAsync(application.Id, applicantId);
+        await applicationService.ConfirmResidenceHistoryAsync(application.Id, applicantId, expectedVersion: 0);
         await applicationService.SubmitAsync(application.Id, applicantId);
 
         return application;
