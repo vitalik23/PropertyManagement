@@ -1,9 +1,9 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using PropertyManagement.Domain.Constants;
-using PropertyManagement.Infrastructure.Services;
-using PropertyManagement.Models;
-using PropertyManagement.Models.PropertyViewModels;
+using PropertyManagement.Application.Services;
+using PropertyManagement.Validations;
+using PropertyManagement.ViewModels.Property;
 
 namespace PropertyManagement.Controllers;
 

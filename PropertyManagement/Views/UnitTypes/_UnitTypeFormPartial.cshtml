@@ -1,4 +1,4 @@
-@using PropertyManagement.Models.UnitTypeViewModels
+@using PropertyManagement.ViewModels.UnitType
 @model UnitTypeFormViewModel
 
 <form data-modal-form data-refresh-url="/UnitTypes/List" data-refresh-target="#unit-types-list" asp-controller="UnitTypes" asp-action="@(Model.Id.HasValue ? "Edit" : "Create")" method="post">

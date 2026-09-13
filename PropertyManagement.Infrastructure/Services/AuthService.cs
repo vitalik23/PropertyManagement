@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Identity;
+using PropertyManagement.Application.Services;
 using PropertyManagement.Domain.Entities;
 
 namespace PropertyManagement.Infrastructure.Services;

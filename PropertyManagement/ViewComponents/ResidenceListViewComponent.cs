@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
-using PropertyManagement.Infrastructure.Services;
-using PropertyManagement.Models.ApplicationViewModels;
+using PropertyManagement.Application.Services;
+using PropertyManagement.ViewModels.Application;
 
 namespace PropertyManagement.ViewComponents;
 

@@ -1,5 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
-using PropertyManagement.Infrastructure.Services;
+using PropertyManagement.Application.Services;
 
 namespace PropertyManagement.ViewComponents;
 

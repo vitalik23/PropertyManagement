@@ -1,8 +1,8 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using PropertyManagement.Domain.Constants;
-using PropertyManagement.Infrastructure.Services;
-using PropertyManagement.Models.UnitTypeViewModels;
+using PropertyManagement.Application.Services;
+using PropertyManagement.ViewModels.UnitType;
 
 namespace PropertyManagement.Controllers;
 

@@ -1,6 +1,7 @@
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
 using Microsoft.Extensions.Options;
+using PropertyManagement.Application.Services;
 
 namespace PropertyManagement.Infrastructure.Services;
 

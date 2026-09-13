@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
-using PropertyManagement.Infrastructure.Services;
-using PropertyManagement.Models;
+using PropertyManagement.Application.Services;
+using PropertyManagement.ViewModels;
 using System.Diagnostics;
 
 namespace PropertyManagement.Controllers

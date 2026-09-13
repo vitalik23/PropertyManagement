@@ -1,4 +1,4 @@
-@using PropertyManagement.Models.ApplicationViewModels
+@using PropertyManagement.ViewModels.Application
 @model InviteCoApplicantViewModel
 
 <form data-modal-form data-refresh-url="/Applications/CoApplicantsList?applicationId=@Model.ApplicationId" data-refresh-target="#co-applicants-list" asp-controller="Applications" asp-action="InviteCoApplicant" method="post">

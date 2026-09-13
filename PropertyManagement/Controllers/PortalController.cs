@@ -2,8 +2,8 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using PropertyManagement.Domain.Entities;
-using PropertyManagement.Infrastructure.Services;
-using PropertyManagement.Models.PortalViewModels;
+using PropertyManagement.Application.Services;
+using PropertyManagement.ViewModels.Portal;
 
 namespace PropertyManagement.Controllers;
 

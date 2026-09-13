@@ -1,4 +1,4 @@
-@using PropertyManagement.Models.ApplicationViewModels
+@using PropertyManagement.ViewModels.Application
 @model ResidenceDeleteViewModel
 
 <form data-modal-form data-refresh-url="/Applications/ResidenceList?applicationId=@Model.ApplicationId" data-refresh-target="#residence-list" asp-controller="Applications" asp-action="DeleteResidence" method="post">

@@ -3,9 +3,9 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using PropertyManagement.Domain.Constants;
 using PropertyManagement.Domain.Entities;
-using PropertyManagement.Infrastructure.Services;
-using PropertyManagement.Models;
-using PropertyManagement.Models.UnitViewModels;
+using PropertyManagement.Application.Services;
+using PropertyManagement.Validations;
+using PropertyManagement.ViewModels.Unit;
 
 namespace PropertyManagement.Controllers;
 

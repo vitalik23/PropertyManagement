@@ -4,8 +4,8 @@ using Microsoft.AspNetCore.Mvc;
 using PropertyManagement.Domain.Constants;
 using PropertyManagement.Domain.Entities;
 using PropertyManagement.Domain.Enums;
-using PropertyManagement.Infrastructure.Services;
-using PropertyManagement.Models.ApplicationViewModels;
+using PropertyManagement.Application.Services;
+using PropertyManagement.ViewModels.Application;
 
 namespace PropertyManagement.Controllers;
 

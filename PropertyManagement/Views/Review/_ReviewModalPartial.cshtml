@@ -1,5 +1,5 @@
-@using PropertyManagement.Infrastructure.Services
-@using PropertyManagement.Models.ReviewViewModels
+@using PropertyManagement.Application.Services
+@using PropertyManagement.ViewModels.Review
 @model ReviewViewModel
 
 <form data-modal-form data-refresh-url="/Review/DetailsPartial/@Model.ApplicationId" data-refresh-target="#application-details" asp-controller="Review" asp-action="Review" method="post">

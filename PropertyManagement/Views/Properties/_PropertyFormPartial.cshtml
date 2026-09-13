@@ -1,4 +1,4 @@
-@using PropertyManagement.Models.PropertyViewModels
+@using PropertyManagement.ViewModels.Property
 @model PropertyFormViewModel
 
 <form data-modal-form data-refresh-url="/Properties/List" data-refresh-target="#properties-list" asp-controller="Properties" asp-action="@(Model.Id.HasValue ? "Edit" : "Create")" method="post">

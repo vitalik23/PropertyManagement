@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using PropertyManagement.Domain.Entities;
-using PropertyManagement.Infrastructure.Services;
+using PropertyManagement.Application.Services;
 
 namespace PropertyManagement.ViewComponents;
 

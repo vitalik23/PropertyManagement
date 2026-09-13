@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using PropertyManagement.Domain.Constants;
 using PropertyManagement.Domain.Enums;
-using PropertyManagement.Infrastructure.Services;
+using PropertyManagement.Application.Services;
 
 namespace PropertyManagement.ViewComponents;
 

@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using PropertyManagement.Domain.Constants;
-using PropertyManagement.Infrastructure.Services;
-using PropertyManagement.Models.ApplyViewModels;
+using PropertyManagement.Application.Services;
+using PropertyManagement.ViewModels.Apply;
 
 namespace PropertyManagement.Controllers;
 
