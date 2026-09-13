@@ -20,6 +20,7 @@ public class UnitFormViewModel
 
     [Required]
     [Display(Name = "Monthly rent")]
+    [Range(0.01, 1000000, ErrorMessage = "Monthly rent must be a positive amount.")]
     public decimal MonthlyRent { get; set; }
 
     [Required]

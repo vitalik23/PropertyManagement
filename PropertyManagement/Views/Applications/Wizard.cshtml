@@ -18,6 +18,10 @@
     <input type="hidden" asp-for="ApplicantInfoVersion" />
     <input type="hidden" asp-for="ResidenceHistoryVersion" />
     <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+    @if (!ViewData.ModelState.IsValid)
+    {
+        <a asp-action="Wizard" asp-route-id="@Model.Id" class="btn btn-sm btn-outline-secondary mb-3">Reload</a>
+    }
 
     @if (Model.CurrentSection == WizardSection.ApplicantInfo)
     {

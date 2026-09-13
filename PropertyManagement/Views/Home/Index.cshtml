@@ -1,3 +1,4 @@
+@using PropertyManagement.Domain.Constants
 @using PropertyManagement.Domain.Entities
 @model List<Unit>
 @{
@@ -6,7 +7,7 @@
     var unitTypes = (List<UnitType>)ViewBag.UnitTypes;
     var selectedPropertyId = (Guid?)ViewBag.SelectedPropertyId;
     var selectedUnitTypeId = (Guid?)ViewBag.SelectedUnitTypeId;
-    var selectedMinBedrooms = (int?)ViewBag.SelectedMinBedrooms;
+    var selectedBedrooms = (int?)ViewBag.SelectedBedrooms;
     var selectedMinRent = (decimal?)ViewBag.SelectedMinRent;
     var selectedMaxRent = (decimal?)ViewBag.SelectedMaxRent;
 }
@@ -44,11 +45,11 @@
         </div>
         <div class="col-6 col-md-2">
             <label class="form-label">Bedrooms</label>
-            <select name="minBedrooms" class="form-select">
+            <select name="bedrooms" class="form-select">
                 <option value="">Any</option>
                 @for (var i = 1; i <= 5; i++)
                 {
-                    <option value="@i" selected="@(selectedMinBedrooms == i)">@(i)@(i == 5 ? "+" : "")</option>
+                    <option value="@i" selected="@(selectedBedrooms == i)">@(i)@(i == 5 ? "+" : "")</option>
                 }
             </select>
         </div>
@@ -77,10 +78,24 @@ else
         {
             <div class="col">
                 <div class="unit-card">
+                    <div class="unit-photo-placeholder">
+                        <i class="bi bi-building"></i>
+                    </div>
                     <h5>@unit.Property.Name</h5>
                     <p class="text-muted mb-2">@unit.Property.AddressLine1, @unit.Property.City, @unit.Property.State</p>
                     <p class="unit-card-price">@unit.MonthlyRent.ToString("C")<span>/month</span></p>
                     <p class="mb-0">Unit @unit.UnitNumber &middot; @unit.Bedrooms bd &middot; @unit.UnitType.Name</p>
+                    <div class="unit-card-actions">
+                        <a asp-controller="Home" asp-action="Details" asp-route-id="@unit.Id" class="btn btn-home-secondary btn-sm">View</a>
+                        @if (User.IsInRole(Roles.Applicant))
+                        {
+                            <a asp-controller="Applications" asp-action="Start" asp-route-unitId="@unit.Id" class="btn btn-home-primary btn-sm">Apply</a>
+                        }
+                        else if (User.Identity?.IsAuthenticated != true)
+                        {
+                            <a asp-controller="Apply" asp-action="Start" asp-route-unitId="@unit.Id" class="btn btn-home-primary btn-sm">Apply</a>
+                        }
+                    </div>
                 </div>
             </div>
         }

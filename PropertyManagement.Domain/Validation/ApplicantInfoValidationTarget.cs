@@ -16,6 +16,8 @@ public class ApplicantInfoValidationTarget
 
     [Required]
     [Display(Name = "Phone number")]
+    [DataType(DataType.PhoneNumber)]
+    [RegularExpression(@"^\+?[0-9()\-\s]{7,20}$", ErrorMessage = "Enter a valid phone number.")]
     public string PhoneNumber { get; set; } = string.Empty;
 
     [Required]

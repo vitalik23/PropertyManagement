@@ -1,0 +1,45 @@
+@using PropertyManagement.Domain.Constants
+@using PropertyManagement.Domain.Entities
+@model Unit
+@{
+    ViewData["Title"] = "Unit Details";
+    var available = (bool)ViewBag.Available;
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/home.css" asp-append-version="true" />
+}
+
+<a asp-controller="Home" asp-action="Index" class="unit-details-back">&larr; Back to listings</a>
+
+<div class="unit-details-card">
+    <div class="unit-photo-placeholder unit-photo-placeholder-lg">
+        <i class="bi bi-building"></i>
+    </div>
+
+    <span class="availability-badge @(available ? "availability-badge-success" : "availability-badge-muted")">
+        @(available ? "Available now" : "Currently leased")
+    </span>
+
+    <h1>@Model.Property.Name</h1>
+    <p class="text-muted mb-2">
+        @Model.Property.AddressLine1
+        @if (!string.IsNullOrWhiteSpace(Model.Property.AddressLine2))
+        {
+            <text>, @Model.Property.AddressLine2</text>
+        }
+        , @Model.Property.City, @Model.Property.State @Model.Property.ZipCode
+    </p>
+
+    <p class="unit-card-price">@Model.MonthlyRent.ToString("C")<span>/month</span></p>
+    <p class="mb-4">Unit @Model.UnitNumber &middot; @Model.Bedrooms bd &middot; @Model.UnitType.Name</p>
+
+    @if (User.IsInRole(Roles.Applicant))
+    {
+        <a asp-controller="Applications" asp-action="Start" asp-route-unitId="@Model.Id" class="btn btn-home-primary">Apply</a>
+    }
+    else if (User.Identity?.IsAuthenticated != true)
+    {
+        <a asp-controller="Apply" asp-action="Start" asp-route-unitId="@Model.Id" class="btn btn-home-primary">Apply</a>
+    }
+</div>

@@ -14,7 +14,7 @@ public class UnitService(ApplicationDbContext db) : IUnitService
             .ToListAsync();
 
     public Task<Unit?> GetByIdAsync(Guid id)
-        => db.Units.Include(u => u.UnitType).FirstOrDefaultAsync(u => u.Id == id);
+        => db.Units.Include(u => u.UnitType).Include(u => u.Property).FirstOrDefaultAsync(u => u.Id == id);
 
     public async Task<List<UnitType>> GetSelectableUnitTypesAsync(Guid? currentUnitTypeId)
     {

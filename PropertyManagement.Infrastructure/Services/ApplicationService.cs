@@ -150,10 +150,13 @@ public class ApplicationService(ApplicationDbContext db, IUnitAvailabilityServic
             return ApplicationActionResult.Failure("This section was changed by another applicant. Reload to see the latest version.");
         }
 
-        application.FullName = fullName;
-        application.PhoneNumber = phoneNumber;
-        application.Email = email;
-        application.CurrentAddress = currentAddress;
+        // ASP.NET Core's default model binding converts an empty posted form field to null (not
+        // "") for string properties, but these columns are NOT NULL — coalesce so a genuinely
+        // blank field still saves (save-with-errors) instead of crashing on constraint violation.
+        application.FullName = fullName ?? string.Empty;
+        application.PhoneNumber = phoneNumber ?? string.Empty;
+        application.Email = email ?? string.Empty;
+        application.CurrentAddress = currentAddress ?? string.Empty;
         application.ApplicantInfoCompletedAt = DateTime.UtcNow;
         application.ApplicantInfoVersion++;
 

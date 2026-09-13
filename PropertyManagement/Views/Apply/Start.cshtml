@@ -1,0 +1,56 @@
+@using PropertyManagement.Domain.Entities
+@using PropertyManagement.Models.ApplyViewModels
+@model ApplyRegisterViewModel
+@{
+    ViewData["Title"] = "Apply";
+    var unit = (Unit)ViewBag.Unit;
+    var unavailable = (bool)(ViewBag.Unavailable ?? false);
+    var returnUrl = Url.Action("Start", "Applications", new { unitId = Model.UnitId });
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/auth.css" asp-append-version="true" />
+}
+
+<div class="auth-page">
+    <div class="auth-card">
+        <h1>Create your account to apply</h1>
+        <p class="auth-subtitle">
+            @unit.Property.Name &mdash; Unit @unit.UnitNumber, @unit.MonthlyRent.ToString("C")/month
+        </p>
+
+        @if (unavailable)
+        {
+            <div class="alert alert-warning">This unit is no longer available.</div>
+        }
+        else
+        {
+            <form asp-controller="Apply" asp-action="Start" method="post">
+                <input type="hidden" asp-for="UnitId" />
+                <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+                <div class="form-group mb-3">
+                    <input asp-for="Email" class="form-control" placeholder="Email" />
+                    <span asp-validation-for="Email" class="text-danger"></span>
+                </div>
+
+                <div class="form-group mb-3">
+                    <input asp-for="Password" class="form-control" placeholder="Password" />
+                    <span asp-validation-for="Password" class="text-danger"></span>
+                </div>
+
+                <div class="form-group mb-3">
+                    <input asp-for="ConfirmPassword" class="form-control" placeholder="Confirm password" />
+                    <span asp-validation-for="ConfirmPassword" class="text-danger"></span>
+                </div>
+
+                <button type="submit" class="btn btn-primary">Continue</button>
+                <p class="auth-switch">Already have an account? <a asp-controller="Account" asp-action="Login" asp-route-returnUrl="@returnUrl">Log in</a></p>
+            </form>
+        }
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}

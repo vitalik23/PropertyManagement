@@ -48,11 +48,13 @@ public class ApplicationsController(IApplicationService applicationService, User
 
         if (!editable)
         {
+            ModelState.Clear();
             return View(BuildViewModel(application, WizardSection.Summary));
         }
 
         if (submitAction == "back")
         {
+            ModelState.Clear();
             return View(BuildViewModel(application, PreviousSection(model.CurrentSection)));
         }
 
@@ -64,14 +66,26 @@ public class ApplicationsController(IApplicationService applicationService, User
             var result = await applicationService.SaveApplicantInfoAsync(application.Id, CurrentUserId, model.FullName, model.PhoneNumber, model.Email, model.CurrentAddress, model.ApplicantInfoVersion);
             if (!result.Succeeded)
             {
+                // ModelState still holds automatic [Required] errors from binding THIS request's
+                // own posted values (which lost the conflict and were never saved) — clear it so
+                // asp-validation-for doesn't attach those to the freshly-rebuilt view model below,
+                // which instead reflects whichever save actually won.
+                ModelState.Clear();
                 ModelState.AddModelError(string.Empty, result.Error!);
                 return View(BuildViewModel(application, WizardSection.ApplicantInfo));
             }
 
             var refreshed = await applicationService.GetByIdAsync(application.Id);
+            var applicantInfoErrors = applicationService.ValidateApplicantInfo(refreshed!);
 
-            if (!ModelState.IsValid)
+            if (applicantInfoErrors.Count > 0)
             {
+                ModelState.Clear();
+                foreach (var error in applicantInfoErrors)
+                {
+                    ModelState.AddModelError(error.Field, error.Message);
+                }
+
                 return View(BuildViewModel(refreshed!, WizardSection.ApplicantInfo));
             }
 
@@ -83,6 +97,7 @@ public class ApplicationsController(IApplicationService applicationService, User
             var result = await applicationService.ConfirmResidenceHistoryAsync(application.Id, CurrentUserId, model.ResidenceHistoryVersion);
             if (!result.Succeeded)
             {
+                ModelState.Clear();
                 ModelState.AddModelError(string.Empty, result.Error!);
                 return View(BuildViewModel(application, WizardSection.ResidenceHistory));
             }
@@ -96,6 +111,7 @@ public class ApplicationsController(IApplicationService applicationService, User
             var result = await applicationService.SubmitAsync(application.Id, CurrentUserId);
             if (!result.Succeeded)
             {
+                ModelState.Clear();
                 ModelState.AddModelError(string.Empty, result.Error!);
                 var refreshedFail = await applicationService.GetByIdAsync(application.Id);
                 return View(BuildViewModel(refreshedFail!, WizardSection.Summary));
@@ -315,7 +331,9 @@ public class ApplicationsController(IApplicationService applicationService, User
             CoApplicantEmails = application.CoApplicants.Select(c => c.User.Email ?? string.Empty).ToList(),
             FullName = application.FullName,
             PhoneNumber = application.PhoneNumber,
-            Email = application.Email,
+            // Default to the account's own email until the applicant actually saves this section —
+            // it's what they'll almost always want, and they can still edit it before saving.
+            Email = string.IsNullOrWhiteSpace(application.Email) ? (User.Identity?.Name ?? string.Empty) : application.Email,
             CurrentAddress = application.CurrentAddress,
             Residences = application.Residences.Select(r => new ResidenceListItem
             {

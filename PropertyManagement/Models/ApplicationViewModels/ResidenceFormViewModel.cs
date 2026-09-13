@@ -18,6 +18,8 @@ public class ResidenceFormViewModel
 
     [Required]
     [Display(Name = "Landlord phone")]
+    [DataType(DataType.PhoneNumber)]
+    [RegularExpression(@"^\+?[0-9()\-\s]{7,20}$", ErrorMessage = "Enter a valid phone number.")]
     public string LandlordPhone { get; set; } = string.Empty;
 
     [Required]

@@ -24,5 +24,6 @@ public class PropertyFormViewModel
 
     [Required]
     [Display(Name = "Zip code")]
+    [RegularExpression(@"^\d{5}(-\d{4})?$", ErrorMessage = "Enter a valid ZIP code (12345 or 12345-6789).")]
     public string ZipCode { get; set; } = string.Empty;
 }

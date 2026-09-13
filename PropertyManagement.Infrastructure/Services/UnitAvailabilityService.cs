@@ -9,7 +9,7 @@ public class UnitAvailabilityService(ApplicationDbContext db) : IUnitAvailabilit
     public async Task<bool> IsAvailableAsync(Guid unitId, DateOnly today)
         => !await db.Leases.AnyAsync(l => l.UnitId == unitId && l.StartDate <= today && l.EndDate >= today);
 
-    public Task<List<Unit>> GetAvailableUnitsAsync(DateOnly today, Guid? propertyId = null, Guid? unitTypeId = null, int? minBedrooms = null, decimal? minRent = null, decimal? maxRent = null)
+    public Task<List<Unit>> GetAvailableUnitsAsync(DateOnly today, Guid? propertyId = null, Guid? unitTypeId = null, int? bedrooms = null, decimal? minRent = null, decimal? maxRent = null)
     {
         var query = db.Units
             .Include(u => u.Property)
@@ -26,9 +26,13 @@ public class UnitAvailabilityService(ApplicationDbContext db) : IUnitAvailabilit
             query = query.Where(u => u.UnitTypeId == unitTypeId);
         }
 
-        if (minBedrooms is not null)
+        if (bedrooms is not null)
         {
-            query = query.Where(u => u.Bedrooms >= minBedrooms);
+            // 1-4 mean exactly that many bedrooms; the top bucket (5) stays open-ended ("5+"),
+            // matching the dropdown's own label in Home/Index.cshtml.
+            query = bedrooms >= 5
+                ? query.Where(u => u.Bedrooms >= bedrooms)
+                : query.Where(u => u.Bedrooms == bedrooms);
         }
 
         if (minRent is not null)
@@ -45,5 +49,15 @@ public class UnitAvailabilityService(ApplicationDbContext db) : IUnitAvailabilit
             .OrderBy(u => u.Property.Name)
             .ThenBy(u => u.UnitNumber)
             .ToListAsync();
+    }
+
+    public async Task<(decimal? Min, decimal? Max)> GetRentRangeAsync(DateOnly today)
+    {
+        var rents = await db.Units
+            .Where(u => !u.IsRemoved && !db.Leases.Any(l => l.UnitId == u.Id && l.StartDate <= today && l.EndDate >= today))
+            .Select(u => u.MonthlyRent)
+            .ToListAsync();
+
+        return rents.Count == 0 ? (null, null) : (rents.Min(), rents.Max());
     }
 }

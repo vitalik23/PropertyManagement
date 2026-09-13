@@ -143,7 +143,7 @@ public class UnitAvailabilityServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task GetAvailableUnitsAsync_FiltersByMinBedrooms()
+    public async Task GetAvailableUnitsAsync_FiltersByBedrooms()
     {
         var db = _factory.Context;
         var property = await TestDataBuilder.CreatePropertyAsync(db);
@@ -155,10 +155,49 @@ public class UnitAvailabilityServiceTests : IDisposable
         await db.SaveChangesAsync();
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
 
-        var results = await _service.GetAvailableUnitsAsync(today, minBedrooms: 3);
+        var results = await _service.GetAvailableUnitsAsync(today, bedrooms: 3);
 
         Assert.Single(results);
         Assert.Equal(bigUnit.Id, results[0].Id);
+    }
+
+    [Fact]
+    public async Task GetAvailableUnitsAsync_FiltersByExactBedrooms_ExcludesHigherCounts()
+    {
+        var db = _factory.Context;
+        var property = await TestDataBuilder.CreatePropertyAsync(db);
+        var unitType = await TestDataBuilder.CreateUnitTypeAsync(db);
+        var twoBed = await TestDataBuilder.CreateUnitAsync(db, property, unitType);
+        twoBed.Bedrooms = 2;
+        var threeBed = await TestDataBuilder.CreateUnitAsync(db, property, unitType);
+        threeBed.Bedrooms = 3;
+        var fourBed = await TestDataBuilder.CreateUnitAsync(db, property, unitType);
+        fourBed.Bedrooms = 4;
+        await db.SaveChangesAsync();
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+
+        var results = await _service.GetAvailableUnitsAsync(today, bedrooms: 3);
+
+        Assert.Single(results);
+        Assert.Equal(threeBed.Id, results[0].Id);
+    }
+
+    [Fact]
+    public async Task GetAvailableUnitsAsync_BedroomsFiveOrMore_IsOpenEnded()
+    {
+        var db = _factory.Context;
+        var property = await TestDataBuilder.CreatePropertyAsync(db);
+        var unitType = await TestDataBuilder.CreateUnitTypeAsync(db);
+        var fiveBed = await TestDataBuilder.CreateUnitAsync(db, property, unitType);
+        fiveBed.Bedrooms = 5;
+        var sixBed = await TestDataBuilder.CreateUnitAsync(db, property, unitType);
+        sixBed.Bedrooms = 6;
+        await db.SaveChangesAsync();
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+
+        var results = await _service.GetAvailableUnitsAsync(today, bedrooms: 5);
+
+        Assert.Equal(2, results.Count);
     }
 
     [Fact]
