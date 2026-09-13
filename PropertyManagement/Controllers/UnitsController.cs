@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 using PropertyManagement.Domain.Constants;
 using PropertyManagement.Domain.Entities;
 using PropertyManagement.Infrastructure.Services;
+using PropertyManagement.Models;
 using PropertyManagement.Models.UnitViewModels;
 
 namespace PropertyManagement.Controllers;
@@ -132,6 +133,55 @@ public class UnitsController(IUnitService unitService, IPropertyService property
         }
 
         return Json(new { success = true });
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> Photos(Guid id)
+    {
+        var unit = await unitService.GetByIdAsync(id);
+        if (unit is null)
+        {
+            return NotFound();
+        }
+
+        var photos = await unitService.GetPhotosAsync(id);
+        return PartialView("_UnitPhotosPartial", new UnitPhotosViewModel { UnitId = id, Photos = photos });
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> UploadPhoto(Guid unitId, IFormFile? file)
+    {
+        var unit = await unitService.GetByIdAsync(unitId);
+        if (unit is null)
+        {
+            return NotFound();
+        }
+
+        var error = PhotoUploadValidation.Validate(file);
+        if (error is not null)
+        {
+            var photos = await unitService.GetPhotosAsync(unitId);
+            return PartialView("_UnitPhotosPartial", new UnitPhotosViewModel { UnitId = unitId, Photos = photos, Error = error });
+        }
+
+        await using (var stream = file!.OpenReadStream())
+        {
+            await unitService.AddPhotoAsync(unitId, stream, file.FileName, file.ContentType);
+        }
+
+        var refreshedPhotos = await unitService.GetPhotosAsync(unitId);
+        return PartialView("_UnitPhotosPartial", new UnitPhotosViewModel { UnitId = unitId, Photos = refreshedPhotos });
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> DeletePhoto(Guid photoId, Guid unitId)
+    {
+        await unitService.RemovePhotoAsync(photoId);
+
+        var photos = await unitService.GetPhotosAsync(unitId);
+        return PartialView("_UnitPhotosPartial", new UnitPhotosViewModel { UnitId = unitId, Photos = photos });
     }
 
     private async Task PopulateUnitTypeOptionsAsync(UnitFormViewModel model)

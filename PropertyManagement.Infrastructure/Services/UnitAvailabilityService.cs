@@ -14,6 +14,7 @@ public class UnitAvailabilityService(ApplicationDbContext db) : IUnitAvailabilit
         var query = db.Units
             .Include(u => u.Property)
             .Include(u => u.UnitType)
+            .Include(u => u.Photos)
             .Where(u => !u.IsRemoved && !db.Leases.Any(l => l.UnitId == u.Id && l.StartDate <= today && l.EndDate >= today));
 
         if (propertyId is not null)

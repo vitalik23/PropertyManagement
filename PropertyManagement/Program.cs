@@ -30,6 +30,8 @@ builder.Services.AddScoped<IUnitService, UnitService>();
 builder.Services.AddScoped<IUnitAvailabilityService, UnitAvailabilityService>();
 builder.Services.AddScoped<IApplicationService, ApplicationService>();
 builder.Services.AddScoped<IApplicationReviewService, ApplicationReviewService>();
+builder.Services.Configure<BlobStorageOptions>(builder.Configuration.GetSection("BlobStorage"));
+builder.Services.AddScoped<IBlobStorageService, BlobStorageService>();
 
 var app = builder.Build();
 

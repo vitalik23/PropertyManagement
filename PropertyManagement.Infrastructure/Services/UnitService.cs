@@ -4,7 +4,7 @@ using PropertyManagement.Infrastructure.Data;
 
 namespace PropertyManagement.Infrastructure.Services;
 
-public class UnitService(ApplicationDbContext db) : IUnitService
+public class UnitService(ApplicationDbContext db, IBlobStorageService blobStorage) : IUnitService
 {
     public Task<List<Unit>> GetByPropertyIdAsync(Guid propertyId)
         => db.Units
@@ -14,7 +14,11 @@ public class UnitService(ApplicationDbContext db) : IUnitService
             .ToListAsync();
 
     public Task<Unit?> GetByIdAsync(Guid id)
-        => db.Units.Include(u => u.UnitType).Include(u => u.Property).FirstOrDefaultAsync(u => u.Id == id);
+        => db.Units
+            .Include(u => u.UnitType)
+            .Include(u => u.Property).ThenInclude(p => p.Photos)
+            .Include(u => u.Photos)
+            .FirstOrDefaultAsync(u => u.Id == id);
 
     public async Task<List<UnitType>> GetSelectableUnitTypesAsync(Guid? currentUnitTypeId)
     {
@@ -106,6 +110,45 @@ public class UnitService(ApplicationDbContext db) : IUnitService
         }
 
         unit.IsRemoved = true;
+        await db.SaveChangesAsync();
+
+        return true;
+    }
+
+    public Task<List<UnitPhoto>> GetPhotosAsync(Guid unitId)
+        => db.UnitPhotos
+            .Where(p => p.UnitId == unitId)
+            .OrderBy(p => p.CreatedAt)
+            .ToListAsync();
+
+    public async Task<UnitPhoto> AddPhotoAsync(Guid unitId, Stream content, string fileName, string contentType)
+    {
+        var upload = await blobStorage.UploadAsync($"units/{unitId}", fileName, content, contentType);
+
+        var photo = new UnitPhoto
+        {
+            UnitId = unitId,
+            Url = upload.Url,
+            BlobName = upload.BlobName
+        };
+
+        db.UnitPhotos.Add(photo);
+        await db.SaveChangesAsync();
+
+        return photo;
+    }
+
+    public async Task<bool> RemovePhotoAsync(Guid photoId)
+    {
+        var photo = await db.UnitPhotos.FirstOrDefaultAsync(p => p.Id == photoId);
+        if (photo is null)
+        {
+            return false;
+        }
+
+        await blobStorage.DeleteAsync(photo.BlobName);
+
+        db.UnitPhotos.Remove(photo);
         await db.SaveChangesAsync();
 
         return true;

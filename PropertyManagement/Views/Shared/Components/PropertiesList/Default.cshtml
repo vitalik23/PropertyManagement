@@ -37,6 +37,7 @@
                         <td>@property.ZipCode</td>
                         <td class="text-end">
                             <a asp-controller="Units" asp-action="Index" asp-route-propertyId="@property.Id" class="btn btn-sm btn-table-secondary">Units</a>
+                            <a href="#" class="btn btn-sm btn-table-secondary" data-modal-url="/Properties/Photos/@property.Id">Photos</a>
                             <a href="#" class="btn btn-sm btn-table-secondary" data-modal-url="/Properties/Edit/@property.Id">Edit</a>
                             <a href="#" class="btn btn-sm btn-outline-danger" data-modal-url="/Properties/Delete/@property.Id">Remove</a>
                         </td>

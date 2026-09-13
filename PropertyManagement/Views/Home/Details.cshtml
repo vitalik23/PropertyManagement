@@ -13,9 +13,35 @@
 <a asp-controller="Home" asp-action="Index" class="unit-details-back">&larr; Back to listings</a>
 
 <div class="unit-details-card">
-    <div class="unit-photo-placeholder unit-photo-placeholder-lg">
-        <i class="bi bi-building"></i>
-    </div>
+    @if (Model.Photos.Count > 0)
+    {
+        <div id="unitPhotoCarousel" class="carousel slide unit-photo-placeholder unit-photo-placeholder-lg" data-bs-ride="false">
+            <div class="carousel-inner h-100">
+                @for (var i = 0; i < Model.Photos.Count; i++)
+                {
+                    var photo = Model.Photos.ElementAt(i);
+                    <div class="carousel-item h-100 @(i == 0 ? "active" : "")">
+                        <img src="@photo.Url" class="d-block w-100 h-100" alt="Unit photo" />
+                    </div>
+                }
+            </div>
+            @if (Model.Photos.Count > 1)
+            {
+                <button class="carousel-control-prev" type="button" data-bs-target="#unitPhotoCarousel" data-bs-slide="prev">
+                    <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                </button>
+                <button class="carousel-control-next" type="button" data-bs-target="#unitPhotoCarousel" data-bs-slide="next">
+                    <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                </button>
+            }
+        </div>
+    }
+    else
+    {
+        <div class="unit-photo-placeholder unit-photo-placeholder-lg">
+            <i class="bi bi-building"></i>
+        </div>
+    }
 
     <span class="availability-badge @(available ? "availability-badge-success" : "availability-badge-muted")">
         @(available ? "Available now" : "Currently leased")
@@ -41,5 +67,19 @@
     else if (User.Identity?.IsAuthenticated != true)
     {
         <a asp-controller="Apply" asp-action="Start" asp-route-unitId="@Model.Id" class="btn btn-home-primary">Apply</a>
+    }
+
+    @if (Model.Property.Photos.Count > 0)
+    {
+        <hr class="my-4" />
+        <h5>Property photos</h5>
+        <div class="property-photo-grid">
+            @foreach (var photo in Model.Property.Photos)
+            {
+                <div class="property-photo-item">
+                    <img src="@photo.Url" alt="@Model.Property.Name" />
+                </div>
+            }
+        </div>
     }
 </div>

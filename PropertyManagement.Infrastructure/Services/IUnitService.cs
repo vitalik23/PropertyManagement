@@ -16,4 +16,7 @@ public interface IUnitService
     Task<UnitSaveResult> CreateAsync(Guid propertyId, string unitNumber, int bedrooms, decimal monthlyRent, Guid unitTypeId);
     Task<UnitSaveResult> UpdateAsync(Guid id, string unitNumber, int bedrooms, decimal monthlyRent, Guid unitTypeId);
     Task<bool> DeleteAsync(Guid id);
+    Task<List<UnitPhoto>> GetPhotosAsync(Guid unitId);
+    Task<UnitPhoto> AddPhotoAsync(Guid unitId, Stream content, string fileName, string contentType);
+    Task<bool> RemovePhotoAsync(Guid photoId);
 }

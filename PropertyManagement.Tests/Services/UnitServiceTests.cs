@@ -6,11 +6,12 @@ namespace PropertyManagement.Tests.Services;
 public class UnitServiceTests : IDisposable
 {
     private readonly TestDbContextFactory _factory = new();
+    private readonly FakeBlobStorageService _blobStorage = new();
     private readonly UnitService _service;
 
     public UnitServiceTests()
     {
-        _service = new UnitService(_factory.Context);
+        _service = new UnitService(_factory.Context, _blobStorage);
     }
 
     public void Dispose() => _factory.Dispose();
@@ -113,5 +114,64 @@ public class UnitServiceTests : IDisposable
 
         Assert.False(result.Succeeded);
         Assert.Equal(0, await db.Units.CountAsync());
+    }
+
+    [Fact]
+    public async Task AddPhotoAsync_UploadsToBlobStorageAndSavesPhotoRow()
+    {
+        var db = _factory.Context;
+        var unit = await TestDataBuilder.CreateUnitAsync(db);
+        using var content = new MemoryStream([1, 2, 3]);
+
+        var photo = await _service.AddPhotoAsync(unit.Id, content, "photo.jpg", "image/jpeg");
+
+        Assert.Equal(unit.Id, photo.UnitId);
+        Assert.False(string.IsNullOrEmpty(photo.Url));
+        Assert.False(string.IsNullOrEmpty(photo.BlobName));
+        Assert.Single(_blobStorage.UploadedFolders, $"units/{unit.Id}");
+        Assert.Equal(1, await db.UnitPhotos.CountAsync(p => p.UnitId == unit.Id));
+    }
+
+    [Fact]
+    public async Task GetPhotosAsync_ReturnsOnlyPhotosForThatUnit_InUploadOrder()
+    {
+        var db = _factory.Context;
+        var unitA = await TestDataBuilder.CreateUnitAsync(db);
+        var unitB = await TestDataBuilder.CreateUnitAsync(db);
+        using var content = new MemoryStream([1]);
+        var first = await _service.AddPhotoAsync(unitA.Id, content, "a.jpg", "image/jpeg");
+        content.Position = 0;
+        var second = await _service.AddPhotoAsync(unitA.Id, content, "b.jpg", "image/jpeg");
+        content.Position = 0;
+        await _service.AddPhotoAsync(unitB.Id, content, "c.jpg", "image/jpeg");
+
+        var photos = await _service.GetPhotosAsync(unitA.Id);
+
+        Assert.Equal(2, photos.Count);
+        Assert.Equal(first.Id, photos[0].Id);
+        Assert.Equal(second.Id, photos[1].Id);
+    }
+
+    [Fact]
+    public async Task RemovePhotoAsync_DeletesBlobAndRemovesRow()
+    {
+        var db = _factory.Context;
+        var unit = await TestDataBuilder.CreateUnitAsync(db);
+        using var content = new MemoryStream([1]);
+        var photo = await _service.AddPhotoAsync(unit.Id, content, "photo.jpg", "image/jpeg");
+
+        var result = await _service.RemovePhotoAsync(photo.Id);
+
+        Assert.True(result);
+        Assert.Single(_blobStorage.DeletedBlobNames, photo.BlobName);
+        Assert.Equal(0, await db.UnitPhotos.CountAsync());
+    }
+
+    [Fact]
+    public async Task RemovePhotoAsync_WithUnknownId_ReturnsFalse()
+    {
+        var result = await _service.RemovePhotoAsync(Guid.NewGuid());
+
+        Assert.False(result);
     }
 }

@@ -1,0 +1,42 @@
+@using PropertyManagement.Models.PropertyViewModels
+@model PropertyPhotosViewModel
+
+<div class="modal-header">
+    <h5 class="modal-title">Property Photos</h5>
+    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+</div>
+<div class="modal-body">
+    @if (Model.Error is not null)
+    {
+        <div class="text-danger mb-3">@Model.Error</div>
+    }
+
+    @if (Model.Photos.Count == 0)
+    {
+        <p class="text-muted">No photos yet.</p>
+    }
+    else
+    {
+        <div class="photo-gallery-grid mb-3">
+            @foreach (var photo in Model.Photos)
+            {
+                <div class="photo-gallery-item">
+                    <img src="@photo.Url" alt="Property photo" />
+                    <form data-modal-form asp-controller="Properties" asp-action="DeletePhoto" method="post">
+                        <input type="hidden" name="photoId" value="@photo.Id" />
+                        <input type="hidden" name="propertyId" value="@Model.PropertyId" />
+                        <button type="submit" class="photo-gallery-remove" title="Remove photo">&times;</button>
+                    </form>
+                </div>
+            }
+        </div>
+    }
+
+    <form data-modal-form asp-controller="Properties" asp-action="UploadPhoto" method="post" enctype="multipart/form-data">
+        <input type="hidden" name="propertyId" value="@Model.PropertyId" />
+        <div class="mb-3">
+            <input type="file" name="file" class="form-control" accept="image/jpeg,image/png,image/webp" />
+        </div>
+        <button type="submit" class="btn btn-primary">Upload</button>
+    </form>
+</div>

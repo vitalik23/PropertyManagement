@@ -17,4 +17,5 @@ public class Property : IBaseEntity
     public bool IsRemoved { get; set; }
 
     public ICollection<Unit> Units { get; set; } = new List<Unit>();
+    public ICollection<PropertyPhoto> Photos { get; set; } = new List<PropertyPhoto>();
 }

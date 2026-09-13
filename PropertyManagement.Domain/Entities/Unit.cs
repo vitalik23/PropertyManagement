@@ -21,4 +21,5 @@ public class Unit : IBaseEntity
 
     public ICollection<RentalApplication> RentalApplications { get; set; } = new List<RentalApplication>();
     public ICollection<Lease> Leases { get; set; } = new List<Lease>();
+    public ICollection<UnitPhoto> Photos { get; set; } = new List<UnitPhoto>();
 }

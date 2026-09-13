@@ -4,7 +4,7 @@ using PropertyManagement.Infrastructure.Data;
 
 namespace PropertyManagement.Infrastructure.Services;
 
-public class PropertyService(ApplicationDbContext db) : IPropertyService
+public class PropertyService(ApplicationDbContext db, IBlobStorageService blobStorage) : IPropertyService
 {
     public Task<List<Property>> GetAllAsync()
         => db.Properties.Where(p => !p.IsRemoved).OrderBy(p => p.Name).ToListAsync();
@@ -67,6 +67,45 @@ public class PropertyService(ApplicationDbContext db) : IPropertyService
             .ExecuteUpdateAsync(setters => setters
                 .SetProperty(u => u.IsRemoved, true)
                 .SetProperty(u => u.UpdatedAt, now));
+
+        return true;
+    }
+
+    public Task<List<PropertyPhoto>> GetPhotosAsync(Guid propertyId)
+        => db.PropertyPhotos
+            .Where(p => p.PropertyId == propertyId)
+            .OrderBy(p => p.CreatedAt)
+            .ToListAsync();
+
+    public async Task<PropertyPhoto> AddPhotoAsync(Guid propertyId, Stream content, string fileName, string contentType)
+    {
+        var upload = await blobStorage.UploadAsync($"properties/{propertyId}", fileName, content, contentType);
+
+        var photo = new PropertyPhoto
+        {
+            PropertyId = propertyId,
+            Url = upload.Url,
+            BlobName = upload.BlobName
+        };
+
+        db.PropertyPhotos.Add(photo);
+        await db.SaveChangesAsync();
+
+        return photo;
+    }
+
+    public async Task<bool> RemovePhotoAsync(Guid photoId)
+    {
+        var photo = await db.PropertyPhotos.FirstOrDefaultAsync(p => p.Id == photoId);
+        if (photo is null)
+        {
+            return false;
+        }
+
+        await blobStorage.DeleteAsync(photo.BlobName);
+
+        db.PropertyPhotos.Remove(photo);
+        await db.SaveChangesAsync();
 
         return true;
     }

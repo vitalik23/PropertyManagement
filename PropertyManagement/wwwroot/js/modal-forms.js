@@ -39,9 +39,14 @@
             return;
         }
 
-        $.post({
+        var hasFile = $form.find('input[type="file"]').length > 0;
+
+        $.ajax({
+            method: 'POST',
             url: $form.attr('action'),
-            data: $form.serialize()
+            data: hasFile ? new FormData(this) : $form.serialize(),
+            processData: !hasFile,
+            contentType: hasFile ? false : 'application/x-www-form-urlencoded; charset=UTF-8'
         }).done(function (response, status, xhr) {
             var contentType = xhr.getResponseHeader('content-type') || '';
             if (contentType.indexOf('application/json') !== -1) {

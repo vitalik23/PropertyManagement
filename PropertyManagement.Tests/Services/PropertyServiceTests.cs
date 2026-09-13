@@ -6,11 +6,12 @@ namespace PropertyManagement.Tests.Services;
 public class PropertyServiceTests : IDisposable
 {
     private readonly TestDbContextFactory _factory = new();
+    private readonly FakeBlobStorageService _blobStorage = new();
     private readonly PropertyService _service;
 
     public PropertyServiceTests()
     {
-        _service = new PropertyService(_factory.Context);
+        _service = new PropertyService(_factory.Context, _blobStorage);
     }
 
     public void Dispose() => _factory.Dispose();
@@ -70,5 +71,36 @@ public class PropertyServiceTests : IDisposable
 
         Assert.Single(results);
         Assert.Equal(kept.Id, results[0].Id);
+    }
+
+    [Fact]
+    public async Task AddPhotoAsync_UploadsToBlobStorageAndSavesPhotoRow()
+    {
+        var db = _factory.Context;
+        var property = await TestDataBuilder.CreatePropertyAsync(db);
+        using var content = new MemoryStream([1, 2, 3]);
+
+        var photo = await _service.AddPhotoAsync(property.Id, content, "photo.jpg", "image/jpeg");
+
+        Assert.Equal(property.Id, photo.PropertyId);
+        Assert.False(string.IsNullOrEmpty(photo.Url));
+        Assert.False(string.IsNullOrEmpty(photo.BlobName));
+        Assert.Single(_blobStorage.UploadedFolders, $"properties/{property.Id}");
+        Assert.Equal(1, await db.PropertyPhotos.CountAsync(p => p.PropertyId == property.Id));
+    }
+
+    [Fact]
+    public async Task RemovePhotoAsync_DeletesBlobAndRemovesRow()
+    {
+        var db = _factory.Context;
+        var property = await TestDataBuilder.CreatePropertyAsync(db);
+        using var content = new MemoryStream([1]);
+        var photo = await _service.AddPhotoAsync(property.Id, content, "photo.jpg", "image/jpeg");
+
+        var result = await _service.RemovePhotoAsync(photo.Id);
+
+        Assert.True(result);
+        Assert.Single(_blobStorage.DeletedBlobNames, photo.BlobName);
+        Assert.Equal(0, await db.PropertyPhotos.CountAsync());
     }
 }

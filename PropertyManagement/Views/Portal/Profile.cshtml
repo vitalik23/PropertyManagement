@@ -1,7 +1,67 @@
+@using PropertyManagement.Models.PortalViewModels
+@model ProfileViewModel
 @{
     Layout = "_PortalLayout";
     ViewData["Title"] = "Profile";
 }
 
-<h1>Profile</h1>
-<p class="text-muted">Profile details are coming soon.</p>
+<h1 class="mb-3">Profile</h1>
+
+@if (TempData["ProfileSuccess"] is string successMessage)
+{
+    <div class="alert alert-success">@successMessage</div>
+}
+
+<div class="row g-4">
+    <div class="col-12 col-lg-6">
+        <div class="data-table-card p-4">
+            <h5 class="mb-3">Account details</h5>
+            <form asp-controller="Portal" asp-action="UpdateProfile" method="post">
+                <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+                <div class="mb-3">
+                    <label asp-for="Info.Email" class="form-label"></label>
+                    <input asp-for="Info.Email" class="form-control" />
+                    <span asp-validation-for="Info.Email" class="text-danger"></span>
+                </div>
+                <div class="mb-3">
+                    <label asp-for="Info.PhoneNumber" class="form-label"></label>
+                    <input asp-for="Info.PhoneNumber" class="form-control" />
+                    <span asp-validation-for="Info.PhoneNumber" class="text-danger"></span>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Role</label>
+                    <input class="form-control" value="@Model.Info.Role" disabled />
+                </div>
+                <button type="submit" class="btn btn-table-primary">Save changes</button>
+            </form>
+        </div>
+    </div>
+    <div class="col-12 col-lg-6">
+        <div class="data-table-card p-4">
+            <h5 class="mb-3">Change password</h5>
+            <form asp-controller="Portal" asp-action="ChangePassword" method="post">
+                <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+                <div class="mb-3">
+                    <label asp-for="Password.CurrentPassword" class="form-label"></label>
+                    <input asp-for="Password.CurrentPassword" class="form-control" />
+                    <span asp-validation-for="Password.CurrentPassword" class="text-danger"></span>
+                </div>
+                <div class="mb-3">
+                    <label asp-for="Password.NewPassword" class="form-label"></label>
+                    <input asp-for="Password.NewPassword" class="form-control" />
+                    <span asp-validation-for="Password.NewPassword" class="text-danger"></span>
+                </div>
+                <div class="mb-3">
+                    <label asp-for="Password.ConfirmNewPassword" class="form-label"></label>
+                    <input asp-for="Password.ConfirmNewPassword" class="form-control" />
+                    <span asp-validation-for="Password.ConfirmNewPassword" class="text-danger"></span>
+                </div>
+                <button type="submit" class="btn btn-table-primary">Change password</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}

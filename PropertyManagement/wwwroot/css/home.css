@@ -23,8 +23,8 @@
 }
 
 .btn-home-primary {
-  background: #000;
-  border-color: #000;
+  background: var(--accent-color);
+  border-color: var(--accent-color);
   color: #fff;
   border-radius: 0.75rem;
   padding: 0.5rem 1.5rem;
@@ -32,8 +32,8 @@
 
 .btn-home-primary:hover,
 .btn-home-primary:focus {
-  background: #1a1a1a;
-  border-color: #1a1a1a;
+  background: var(--accent-color-dark);
+  border-color: var(--accent-color-dark);
   color: #fff;
 }
 
@@ -88,10 +88,23 @@
   height: 140px;
   margin-bottom: 1rem;
   color: #adb5bd;
+  overflow: hidden;
 }
 
 .unit-photo-placeholder i {
   font-size: 2.5rem;
+}
+
+.unit-photo-placeholder img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* When it hosts a Bootstrap carousel instead of the static icon, the flex-centering layout
+   would fight the carousel's own absolute-positioned controls — fall back to block. */
+.unit-photo-placeholder.carousel {
+  display: block;
 }
 
 .unit-photo-placeholder-lg {
@@ -112,15 +125,15 @@
 
 .btn-home-secondary {
   background: transparent;
-  border: 1px solid #000;
-  color: #000;
+  border: 1px solid var(--accent-color);
+  color: var(--accent-color);
   border-radius: 0.75rem;
   padding: 0.5rem 1.5rem;
 }
 
 .btn-home-secondary:hover,
 .btn-home-secondary:focus {
-  background: #000;
+  background: var(--accent-color);
   color: #fff;
 }
 
@@ -154,4 +167,23 @@
 .unit-details-back {
   display: inline-block;
   margin-bottom: 1rem;
+}
+
+.property-photo-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 0.75rem;
+}
+
+.property-photo-item {
+  height: 120px;
+  border-radius: 0.75rem;
+  overflow: hidden;
+}
+
+.property-photo-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }

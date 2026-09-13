@@ -17,6 +17,8 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public DbSet<Lease> Leases => Set<Lease>();
     public DbSet<ApplicationStatusHistory> ApplicationStatusHistories => Set<ApplicationStatusHistory>();
     public DbSet<ApplicationApplicant> ApplicationApplicants => Set<ApplicationApplicant>();
+    public DbSet<UnitPhoto> UnitPhotos => Set<UnitPhoto>();
+    public DbSet<PropertyPhoto> PropertyPhotos => Set<PropertyPhoto>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -104,6 +106,18 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
             .HasOne(r => r.RentalApplication)
             .WithMany(a => a.Residences)
             .HasForeignKey(r => r.RentalApplicationId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Entity<UnitPhoto>()
+            .HasOne(p => p.Unit)
+            .WithMany(u => u.Photos)
+            .HasForeignKey(p => p.UnitId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Entity<PropertyPhoto>()
+            .HasOne(p => p.Property)
+            .WithMany(pr => pr.Photos)
+            .HasForeignKey(p => p.PropertyId)
             .OnDelete(DeleteBehavior.Cascade);
     }
 
