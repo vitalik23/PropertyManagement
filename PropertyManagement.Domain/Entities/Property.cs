@@ -14,6 +14,7 @@ public class Property : IBaseEntity
     public string City { get; set; } = string.Empty;
     public string State { get; set; } = string.Empty;
     public string ZipCode { get; set; } = string.Empty;
+    public bool IsRemoved { get; set; }
 
     public ICollection<Unit> Units { get; set; } = new List<Unit>();
 }

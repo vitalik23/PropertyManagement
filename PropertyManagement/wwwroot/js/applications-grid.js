@@ -20,17 +20,31 @@
         pageSize: 10
     };
 
+    var STATUS_BADGE_CLASS = {
+        Draft: 'status-badge-muted',
+        Submitted: 'status-badge-info',
+        Returned: 'status-badge-warning',
+        Approved: 'status-badge-success',
+        Denied: 'status-badge-danger',
+        Withdrawn: 'status-badge-muted'
+    };
+
     function escapeHtml(value) {
         return $('<div>').text(value == null ? '' : value).html();
+    }
+
+    function statusBadgeHtml(status) {
+        var badgeClass = STATUS_BADGE_CLASS[status] || 'status-badge-muted';
+        return '<span class="status-badge ' + badgeClass + '">' + escapeHtml(status) + '</span>';
     }
 
     function rowActionsHtml(row) {
         var actions = '';
         if (isPm) {
-            actions += '<a href="' + detailUrlTemplate + row.id + '" class="btn btn-sm btn-outline-primary">View</a>';
+            actions += '<a href="' + detailUrlTemplate + row.id + '" class="btn btn-sm btn-table-secondary">View</a>';
         } else {
             var label = (row.status === 'Draft' || row.status === 'Returned') ? 'Continue' : 'View';
-            actions += '<a href="' + detailUrlTemplate + row.id + '" class="btn btn-sm btn-outline-primary">' + label + '</a>';
+            actions += '<a href="' + detailUrlTemplate + row.id + '" class="btn btn-sm btn-table-secondary">' + label + '</a>';
             if (canWithdraw && (row.status === 'Draft' || row.status === 'Submitted' || row.status === 'Returned')) {
                 actions += ' <a href="#" class="btn btn-sm btn-outline-danger" data-modal-url="/Applications/Withdraw/' + row.id + '">Withdraw</a>';
             }
@@ -54,7 +68,7 @@
             if (isPm) {
                 cells += '<td>' + escapeHtml(row.applicantFullName) + ' (' + escapeHtml(row.applicantEmail) + ')</td>';
             }
-            cells += '<td>' + escapeHtml(row.status) + '</td>' +
+            cells += '<td>' + statusBadgeHtml(row.status) + '</td>' +
                 '<td class="text-end">' + rowActionsHtml(row) + '</td>';
             $body.append('<tr>' + cells + '</tr>');
         });
@@ -70,6 +84,7 @@
             pageSize: state.pageSize
         }).done(function (data) {
             renderRows(data.rows);
+            $('#applications-grid-count').text('Total ' + data.totalCount);
 
             var start = data.totalCount === 0 ? 0 : (state.page - 1) * state.pageSize + 1;
             var end = Math.min(state.page * state.pageSize, data.totalCount);

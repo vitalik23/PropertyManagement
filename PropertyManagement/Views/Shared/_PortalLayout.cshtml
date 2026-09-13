@@ -1,42 +1,111 @@
 @using PropertyManagement.Domain.Constants
 @{
-    Layout = "_Layout";
+    var currentController = ViewContext.RouteData.Values["controller"]?.ToString();
+    var userName = User.Identity?.Name ?? string.Empty;
+    var userInitial = userName.Length > 0 ? userName[0].ToString().ToUpperInvariant() : "?";
+    var userRole = User.IsInRole(Roles.PropertyManager) ? "Property Manager" : "Applicant";
+
+    string NavClass(string controller) => "portal-nav-link" + (currentController == controller ? " active" : "");
 }
-<div class="d-flex portal-layout">
-    <nav class="portal-sidebar">
-        <ul class="nav flex-column">
-            <li class="nav-item">
-                <a class="nav-link" asp-controller="Portal" asp-action="Profile">Profile</a>
-            </li>
-            @if (User.IsInRole(Roles.PropertyManager))
-            {
-                <li class="nav-item">
-                    <a class="nav-link" asp-controller="Properties" asp-action="Index">Properties</a>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - PropertyManagement</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/portal.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/datatable.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/PropertyManagement.styles.css" asp-append-version="true" />
+    @await RenderSectionAsync("Styles", required: false)
+</head>
+<body>
+    <div class="portal-shell">
+        <nav class="portal-sidebar">
+            <div class="portal-brand">
+                <i class="bi bi-building"></i>
+                <span>PropertyManagement</span>
+            </div>
+
+            <div class="portal-nav-group-label">Menu</div>
+            <ul class="portal-nav">
+                <li>
+                    <a class="@NavClass("Portal")" asp-controller="Portal" asp-action="Profile">
+                        <i class="bi bi-person"></i>
+                        <span>Profile</span>
+                    </a>
                 </li>
-                <li class="nav-item">
-                    <a class="nav-link" asp-controller="UnitTypes" asp-action="Index">Unit Types</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" asp-controller="Review" asp-action="Index">Applications</a>
-                </li>
-            }
-            @if (User.IsInRole(Roles.Applicant))
-            {
-                <li class="nav-item">
-                    <a class="nav-link" asp-controller="Browse" asp-action="Index">Browse Units</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" asp-controller="Applications" asp-action="Index">My Applications</a>
-                </li>
-            }
-            <li class="nav-item">
+                @if (User.IsInRole(Roles.PropertyManager))
+                {
+                    <li>
+                        <a class="@NavClass("Properties")" asp-controller="Properties" asp-action="Index">
+                            <i class="bi bi-houses"></i>
+                            <span>Properties</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a class="@NavClass("UnitTypes")" asp-controller="UnitTypes" asp-action="Index">
+                            <i class="bi bi-tags"></i>
+                            <span>Unit Types</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a class="@NavClass("Review")" asp-controller="Review" asp-action="Index">
+                            <i class="bi bi-clipboard-check"></i>
+                            <span>Applications</span>
+                        </a>
+                    </li>
+                }
+                @if (User.IsInRole(Roles.Applicant))
+                {
+                    <li>
+                        <a class="@NavClass("Browse")" asp-controller="Browse" asp-action="Index">
+                            <i class="bi bi-search"></i>
+                            <span>Browse Units</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a class="@NavClass("Applications")" asp-controller="Applications" asp-action="Index">
+                            <i class="bi bi-clipboard-check"></i>
+                            <span>My Applications</span>
+                        </a>
+                    </li>
+                }
+            </ul>
+
+            <div class="portal-sidebar-footer">
+                <div class="portal-user-avatar">@userInitial</div>
+                <div class="portal-user-info">
+                    <div class="portal-user-name" title="@userName">@userName</div>
+                    <div class="portal-user-role">@userRole</div>
+                </div>
                 <form asp-controller="Account" asp-action="Logout" method="post">
-                    <button type="submit" class="nav-link btn btn-link">Logout</button>
+                    <button type="submit" class="portal-logout-btn" title="Logout">
+                        <i class="bi bi-box-arrow-right"></i>
+                    </button>
                 </form>
-            </li>
-        </ul>
-    </nav>
-    <div class="portal-content flex-grow-1">
-        @RenderBody()
+            </div>
+        </nav>
+        <main class="portal-content">
+            @RenderBody()
+        </main>
     </div>
-</div>
+
+    <div class="modal fade" id="shared-modal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content" id="shared-modal-content"></div>
+        </div>
+    </div>
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/jquery-validation/dist/jquery.validate.min.js"></script>
+    <script src="~/lib/jquery-validation-unobtrusive/dist/jquery.validate.unobtrusive.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    <script src="~/js/modal-forms.js" asp-append-version="true"></script>
+    <script src="~/js/applications-grid.js" asp-append-version="true"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

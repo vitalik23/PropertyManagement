@@ -3,11 +3,6 @@
     ViewData["Title"] = "Properties";
 }
 
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <h1>Properties</h1>
-    <a href="#" class="btn btn-primary" data-modal-url="/Properties/Create">Add Property</a>
-</div>
-
 <div id="properties-list">
     @await Component.InvokeAsync("PropertiesList")
 </div>

@@ -107,4 +107,100 @@ public class UnitAvailabilityServiceTests : IDisposable
         Assert.DoesNotContain(available, u => u.Id == leasedUnit.Id);
         Assert.Contains(available, u => u.Id == freeUnit.Id);
     }
+
+    [Fact]
+    public async Task GetAvailableUnitsAsync_FiltersByProperty()
+    {
+        var db = _factory.Context;
+        var unitType = await TestDataBuilder.CreateUnitTypeAsync(db);
+        var propertyA = await TestDataBuilder.CreatePropertyAsync(db);
+        var propertyB = await TestDataBuilder.CreatePropertyAsync(db);
+        var unitA = await TestDataBuilder.CreateUnitAsync(db, propertyA, unitType);
+        await TestDataBuilder.CreateUnitAsync(db, propertyB, unitType);
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+
+        var results = await _service.GetAvailableUnitsAsync(today, propertyId: propertyA.Id);
+
+        Assert.Single(results);
+        Assert.Equal(unitA.Id, results[0].Id);
+    }
+
+    [Fact]
+    public async Task GetAvailableUnitsAsync_FiltersByUnitType()
+    {
+        var db = _factory.Context;
+        var property = await TestDataBuilder.CreatePropertyAsync(db);
+        var typeA = await TestDataBuilder.CreateUnitTypeAsync(db);
+        var typeB = await TestDataBuilder.CreateUnitTypeAsync(db);
+        var unitA = await TestDataBuilder.CreateUnitAsync(db, property, typeA);
+        await TestDataBuilder.CreateUnitAsync(db, property, typeB);
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+
+        var results = await _service.GetAvailableUnitsAsync(today, unitTypeId: typeA.Id);
+
+        Assert.Single(results);
+        Assert.Equal(unitA.Id, results[0].Id);
+    }
+
+    [Fact]
+    public async Task GetAvailableUnitsAsync_FiltersByMinBedrooms()
+    {
+        var db = _factory.Context;
+        var property = await TestDataBuilder.CreatePropertyAsync(db);
+        var unitType = await TestDataBuilder.CreateUnitTypeAsync(db);
+        var smallUnit = await TestDataBuilder.CreateUnitAsync(db, property, unitType);
+        smallUnit.Bedrooms = 1;
+        var bigUnit = await TestDataBuilder.CreateUnitAsync(db, property, unitType);
+        bigUnit.Bedrooms = 3;
+        await db.SaveChangesAsync();
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+
+        var results = await _service.GetAvailableUnitsAsync(today, minBedrooms: 3);
+
+        Assert.Single(results);
+        Assert.Equal(bigUnit.Id, results[0].Id);
+    }
+
+    [Fact]
+    public async Task GetAvailableUnitsAsync_FiltersByRentRange()
+    {
+        var db = _factory.Context;
+        var property = await TestDataBuilder.CreatePropertyAsync(db);
+        var unitType = await TestDataBuilder.CreateUnitTypeAsync(db);
+        var cheapUnit = await TestDataBuilder.CreateUnitAsync(db, property, unitType);
+        cheapUnit.MonthlyRent = 800m;
+        var midUnit = await TestDataBuilder.CreateUnitAsync(db, property, unitType);
+        midUnit.MonthlyRent = 1500m;
+        var expensiveUnit = await TestDataBuilder.CreateUnitAsync(db, property, unitType);
+        expensiveUnit.MonthlyRent = 3000m;
+        await db.SaveChangesAsync();
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+
+        var results = await _service.GetAvailableUnitsAsync(today, minRent: 1000m, maxRent: 2000m);
+
+        Assert.Single(results);
+        Assert.Equal(midUnit.Id, results[0].Id);
+    }
+
+    [Fact]
+    public async Task GetAvailableUnitsAsync_CombinedFilters_Narrow()
+    {
+        var db = _factory.Context;
+        var propertyA = await TestDataBuilder.CreatePropertyAsync(db);
+        var propertyB = await TestDataBuilder.CreatePropertyAsync(db);
+        var unitType = await TestDataBuilder.CreateUnitTypeAsync(db);
+        var matching = await TestDataBuilder.CreateUnitAsync(db, propertyA, unitType);
+        matching.MonthlyRent = 1200m;
+        var wrongProperty = await TestDataBuilder.CreateUnitAsync(db, propertyB, unitType);
+        wrongProperty.MonthlyRent = 1200m;
+        var wrongRent = await TestDataBuilder.CreateUnitAsync(db, propertyA, unitType);
+        wrongRent.MonthlyRent = 5000m;
+        await db.SaveChangesAsync();
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+
+        var results = await _service.GetAvailableUnitsAsync(today, propertyId: propertyA.Id, maxRent: 2000m);
+
+        Assert.Single(results);
+        Assert.Equal(matching.Id, results[0].Id);
+    }
 }

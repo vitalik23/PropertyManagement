@@ -1,0 +1,135 @@
+/* Portal shell: full-height sidebar + content, no site header/footer. */
+
+/* This file is only ever loaded by _PortalLayout.cshtml, so it's safe to reset body directly
+   (site.css's `body { margin-bottom: 60px; }` was sized for _Layout's footer, which portal pages don't have). */
+body {
+  margin: 0;
+}
+
+.portal-shell {
+  display: flex;
+  min-height: 100vh;
+}
+
+.portal-sidebar {
+  width: 260px;
+  flex-shrink: 0;
+  background: #fff;
+  border-right: 1px solid var(--bs-border-color);
+  display: flex;
+  flex-direction: column;
+  padding: 1.5rem 1rem;
+}
+
+.portal-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 700;
+  font-size: 1.1rem;
+  margin-bottom: 2rem;
+  padding: 0 0.5rem;
+}
+
+.portal-nav-group-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--bs-secondary-color);
+  margin: 0 0 0.5rem 0.75rem;
+}
+
+.portal-nav {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 auto 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.portal-nav-link {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 0.75rem;
+  border-radius: 0.5rem;
+  color: #333;
+  text-decoration: none;
+}
+
+.portal-nav-link i {
+  font-size: 1.1rem;
+  width: 1.25rem;
+  text-align: center;
+}
+
+.portal-nav-link:hover {
+  background: #f5f5f7;
+}
+
+.portal-nav-link.active {
+  background: #f0f0f0;
+  font-weight: 600;
+  color: #000;
+}
+
+.portal-sidebar-footer {
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--bs-border-color);
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.portal-user-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #000;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.portal-user-info {
+  overflow: hidden;
+}
+
+.portal-user-name {
+  font-weight: 600;
+  font-size: 0.9rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.portal-user-role {
+  font-size: 0.75rem;
+  color: var(--bs-secondary-color);
+}
+
+.portal-logout-btn {
+  border: none;
+  background: transparent;
+  color: var(--bs-secondary-color);
+  padding: 0.25rem;
+  margin-left: auto;
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+.portal-logout-btn:hover {
+  color: #000;
+}
+
+.portal-content {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 2rem;
+  background: #fafafa;
+}

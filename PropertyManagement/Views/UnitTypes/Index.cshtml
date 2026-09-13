@@ -3,11 +3,6 @@
     ViewData["Title"] = "Unit Types";
 }
 
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <h1>Unit Types</h1>
-    <a href="#" class="btn btn-primary" data-modal-url="/UnitTypes/Create">Add Unit Type</a>
-</div>
-
 <div id="unit-types-list">
     @await Component.InvokeAsync("UnitTypesList")
 </div>

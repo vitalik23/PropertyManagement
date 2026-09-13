@@ -4,45 +4,54 @@
     ViewData["Title"] = "Register";
 }
 
-<h1>Register</h1>
+@section Styles {
+    <link rel="stylesheet" href="~/css/auth.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/registrations.css" asp-append-version="true" />
+}
 
-<div class="row">
-    <div class="col-md-6">
+<div class="auth-page">
+    <div class="auth-card">
+        <h1>Register</h1>
+        <p class="auth-subtitle">Create your account to get started</p>
+
         <form asp-controller="Account" asp-action="Register" method="post">
             <div asp-validation-summary="ModelOnly" class="text-danger"></div>
 
             <div class="form-group mb-3">
-                <label asp-for="Email" class="form-label"></label>
-                <input asp-for="Email" class="form-control" />
+                <input asp-for="Email" class="form-control" placeholder="Email" />
                 <span asp-validation-for="Email" class="text-danger"></span>
             </div>
 
             <div class="form-group mb-3">
-                <label asp-for="Password" class="form-label"></label>
-                <input asp-for="Password" class="form-control" />
+                <input asp-for="Password" class="form-control" placeholder="Password" />
                 <span asp-validation-for="Password" class="text-danger"></span>
             </div>
 
             <div class="form-group mb-3">
-                <label asp-for="ConfirmPassword" class="form-label"></label>
-                <input asp-for="ConfirmPassword" class="form-control" />
+                <input asp-for="ConfirmPassword" class="form-control" placeholder="Confirm password" />
                 <span asp-validation-for="ConfirmPassword" class="text-danger"></span>
             </div>
 
             <div class="form-group mb-3">
                 <label class="form-label d-block">I am registering as</label>
-                <div class="form-check form-check-inline">
-                    <input type="radio" asp-for="Role" value="@Roles.Applicant" class="form-check-input" id="role-applicant" />
-                    <label class="form-check-label" for="role-applicant">Applicant</label>
+                <div class="role-options">
+                    <input type="radio" asp-for="Role" value="@Roles.Applicant" class="role-option-input" id="role-applicant" />
+                    <label class="role-option-card" for="role-applicant">
+                        <strong class="d-block">Applicant</strong>
+                        <span class="text-muted small">Browse units and apply</span>
+                    </label>
+
+                    <input type="radio" asp-for="Role" value="@Roles.PropertyManager" class="role-option-input" id="role-property-manager" />
+                    <label class="role-option-card" for="role-property-manager">
+                        <strong class="d-block">Property Manager</strong>
+                        <span class="text-muted small">Manage properties and applications</span>
+                    </label>
                 </div>
-                <div class="form-check form-check-inline">
-                    <input type="radio" asp-for="Role" value="@Roles.PropertyManager" class="form-check-input" id="role-property-manager" />
-                    <label class="form-check-label" for="role-property-manager">Property Manager</label>
-                </div>
-                <span asp-validation-for="Role" class="text-danger d-block"></span>
+                <span asp-validation-for="Role" class="text-danger d-block mt-2"></span>
             </div>
 
             <button type="submit" class="btn btn-primary">Register</button>
+            <p class="auth-switch">Already have an account? <a asp-controller="Account" asp-action="Login">Log in</a></p>
         </form>
     </div>
 </div>

@@ -1,38 +1,48 @@
 @using PropertyManagement.Domain.Entities
 @model List<Property>
 
-<table class="table table-striped">
-    <thead>
-        <tr>
-            <th>Name</th>
-            <th>Address</th>
-            <th>City</th>
-            <th>State</th>
-            <th>Zip</th>
-            <th></th>
-        </tr>
-    </thead>
-    <tbody>
-        @if (Model.Count == 0)
-        {
-            <tr>
-                <td colspan="6" class="text-center text-muted">No properties yet.</td>
-            </tr>
-        }
-        @foreach (var property in Model)
-        {
-            <tr>
-                <td>@property.Name</td>
-                <td>@property.AddressLine1@(string.IsNullOrEmpty(property.AddressLine2) ? "" : $", {property.AddressLine2}")</td>
-                <td>@property.City</td>
-                <td>@property.State</td>
-                <td>@property.ZipCode</td>
-                <td class="text-end">
-                    <a asp-controller="Units" asp-action="Index" asp-route-propertyId="@property.Id" class="btn btn-sm btn-outline-primary">Units</a>
-                    <a href="#" class="btn btn-sm btn-outline-secondary" data-modal-url="/Properties/Edit/@property.Id">Edit</a>
-                    <a href="#" class="btn btn-sm btn-outline-danger" data-modal-url="/Properties/Delete/@property.Id">Remove</a>
-                </td>
-            </tr>
-        }
-    </tbody>
-</table>
+<div class="data-table-card">
+    <div class="data-table-header">
+        <h1 class="data-table-title">Properties <span class="data-table-count">Total @Model.Count</span></h1>
+        <div class="data-table-actions">
+            <a href="#" class="btn btn-table-primary" data-modal-url="/Properties/Create">Add Property</a>
+        </div>
+    </div>
+    <div class="data-table-wrapper">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Address</th>
+                    <th>City</th>
+                    <th>State</th>
+                    <th>Zip</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model.Count == 0)
+                {
+                    <tr>
+                        <td colspan="6" class="text-center text-muted">No properties yet.</td>
+                    </tr>
+                }
+                @foreach (var property in Model)
+                {
+                    <tr>
+                        <td>@property.Name</td>
+                        <td>@property.AddressLine1@(string.IsNullOrEmpty(property.AddressLine2) ? "" : $", {property.AddressLine2}")</td>
+                        <td>@property.City</td>
+                        <td>@property.State</td>
+                        <td>@property.ZipCode</td>
+                        <td class="text-end">
+                            <a asp-controller="Units" asp-action="Index" asp-route-propertyId="@property.Id" class="btn btn-sm btn-table-secondary">Units</a>
+                            <a href="#" class="btn btn-sm btn-table-secondary" data-modal-url="/Properties/Edit/@property.Id">Edit</a>
+                            <a href="#" class="btn btn-sm btn-outline-danger" data-modal-url="/Properties/Delete/@property.Id">Remove</a>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

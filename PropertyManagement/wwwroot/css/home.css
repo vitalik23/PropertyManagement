@@ -1,0 +1,80 @@
+/* Home page: hero text, filter form, unit card grid. */
+
+.home-hero {
+  padding: 2.5rem 0 1rem;
+  text-align: center;
+}
+
+.home-hero h1 {
+  font-weight: 700;
+}
+
+.home-filters {
+  background: #fff;
+  border: 1px solid var(--bs-border-color);
+  border-radius: 1rem;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.home-filters .form-select,
+.home-filters .form-control {
+  border-radius: 0.75rem;
+}
+
+.btn-home-primary {
+  background: #000;
+  border-color: #000;
+  color: #fff;
+  border-radius: 0.75rem;
+  padding: 0.5rem 1.5rem;
+}
+
+.btn-home-primary:hover,
+.btn-home-primary:focus {
+  background: #1a1a1a;
+  border-color: #1a1a1a;
+  color: #fff;
+}
+
+.home-unit-grid {
+  margin-bottom: 2rem;
+}
+
+.unit-card {
+  background: #fff;
+  border: 1px solid var(--bs-border-color);
+  border-radius: 1rem;
+  padding: 1.25rem;
+  height: 100%;
+  transition: box-shadow 0.15s ease;
+}
+
+.unit-card:hover {
+  box-shadow: 0 0.5rem 1.25rem rgba(0, 0, 0, 0.08);
+}
+
+.unit-card h5 {
+  font-weight: 700;
+  margin-bottom: 0.25rem;
+}
+
+.unit-card-price {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin: 0.5rem 0;
+}
+
+.unit-card-price span {
+  font-size: 0.85rem;
+  font-weight: 400;
+  color: var(--bs-secondary-color);
+}
+
+.home-cta {
+  text-align: center;
+  padding: 1.5rem;
+  background: #f8f9fa;
+  border-radius: 1rem;
+  margin-bottom: 2rem;
+}

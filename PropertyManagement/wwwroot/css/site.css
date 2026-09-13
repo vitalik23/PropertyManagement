@@ -30,19 +30,6 @@ body {
   text-align: start;
 }
 
-.portal-sidebar {
-  width: 220px;
-  flex-shrink: 0;
-  border-right: 1px solid var(--bs-border-color);
-  padding: 1rem 0;
-}
-
-.portal-content {
-  padding: 1rem 1.5rem;
-  flex: 1 1 auto;
-  min-width: 0;
-}
-
 .wizard-actions {
   display: flex;
   gap: 0.5rem;
@@ -50,4 +37,32 @@ body {
 
 .wizard-actions .btn-back {
   order: -1;
+}
+
+.site-navbar {
+  padding-top: 0.75rem;
+  padding-bottom: 0.75rem;
+  box-shadow: 0 0.125rem 0.5rem rgba(0, 0, 0, 0.05);
+  margin-bottom: 1.5rem;
+}
+
+.site-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 700;
+}
+
+.btn-site-register {
+  background: #000;
+  border-color: #000;
+  color: #fff;
+  border-radius: 999px;
+  padding: 0.35rem 1rem;
+}
+
+.btn-site-register:hover {
+  background: #1a1a1a;
+  border-color: #1a1a1a;
+  color: #fff;
 }

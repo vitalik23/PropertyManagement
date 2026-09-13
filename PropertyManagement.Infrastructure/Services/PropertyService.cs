@@ -7,7 +7,7 @@ namespace PropertyManagement.Infrastructure.Services;
 public class PropertyService(ApplicationDbContext db) : IPropertyService
 {
     public Task<List<Property>> GetAllAsync()
-        => db.Properties.OrderBy(p => p.Name).ToListAsync();
+        => db.Properties.Where(p => !p.IsRemoved).OrderBy(p => p.Name).ToListAsync();
 
     public Task<Property?> GetByIdAsync(Guid id)
         => db.Properties.FirstOrDefaultAsync(p => p.Id == id);
@@ -58,8 +58,15 @@ public class PropertyService(ApplicationDbContext db) : IPropertyService
             return false;
         }
 
-        db.Properties.Remove(property);
+        property.IsRemoved = true;
         await db.SaveChangesAsync();
+
+        var now = DateTime.UtcNow;
+        await db.Units
+            .Where(u => u.PropertyId == id)
+            .ExecuteUpdateAsync(setters => setters
+                .SetProperty(u => u.IsRemoved, true)
+                .SetProperty(u => u.UpdatedAt, now));
 
         return true;
     }

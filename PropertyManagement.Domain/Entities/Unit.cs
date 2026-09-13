@@ -11,6 +11,7 @@ public class Unit : IBaseEntity
     public string UnitNumber { get; set; } = string.Empty;
     public int Bedrooms { get; set; }
     public decimal MonthlyRent { get; set; }
+    public bool IsRemoved { get; set; }
 
     public Guid PropertyId { get; set; }
     public Property Property { get; set; } = null!;

@@ -70,4 +70,48 @@ public class UnitServiceTests : IDisposable
         Assert.Equal("202", updated.UnitNumber);
         Assert.Equal(inactiveType.Id, updated.UnitTypeId);
     }
+
+    [Fact]
+    public async Task DeleteAsync_MarksUnitRemoved_InsteadOfDeletingTheRow()
+    {
+        var db = _factory.Context;
+        var unit = await TestDataBuilder.CreateUnitAsync(db);
+
+        var result = await _service.DeleteAsync(unit.Id);
+
+        Assert.True(result);
+        var stillThere = await db.Units.FirstAsync(u => u.Id == unit.Id);
+        Assert.True(stillThere.IsRemoved);
+    }
+
+    [Fact]
+    public async Task GetByPropertyIdAsync_ExcludesRemovedUnits()
+    {
+        var db = _factory.Context;
+        var property = await TestDataBuilder.CreatePropertyAsync(db);
+        var unitType = await TestDataBuilder.CreateUnitTypeAsync(db);
+        var keptUnit = await TestDataBuilder.CreateUnitAsync(db, property, unitType);
+        var removedUnit = await TestDataBuilder.CreateUnitAsync(db, property, unitType);
+        await _service.DeleteAsync(removedUnit.Id);
+
+        var results = await _service.GetByPropertyIdAsync(property.Id);
+
+        Assert.Single(results);
+        Assert.Equal(keptUnit.Id, results[0].Id);
+    }
+
+    [Fact]
+    public async Task CreateAsync_UnderRemovedProperty_Fails()
+    {
+        var db = _factory.Context;
+        var property = await TestDataBuilder.CreatePropertyAsync(db);
+        var unitType = await TestDataBuilder.CreateUnitTypeAsync(db);
+        property.IsRemoved = true;
+        await db.SaveChangesAsync();
+
+        var result = await _service.CreateAsync(property.Id, "101", 2, 1500m, unitType.Id);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal(0, await db.Units.CountAsync());
+    }
 }

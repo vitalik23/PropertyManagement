@@ -9,7 +9,7 @@ public class UnitService(ApplicationDbContext db) : IUnitService
     public Task<List<Unit>> GetByPropertyIdAsync(Guid propertyId)
         => db.Units
             .Include(u => u.UnitType)
-            .Where(u => u.PropertyId == propertyId)
+            .Where(u => u.PropertyId == propertyId && !u.IsRemoved)
             .OrderBy(u => u.UnitNumber)
             .ToListAsync();
 
@@ -28,6 +28,17 @@ public class UnitService(ApplicationDbContext db) : IUnitService
 
     public async Task<UnitSaveResult> CreateAsync(Guid propertyId, string unitNumber, int bedrooms, decimal monthlyRent, Guid unitTypeId)
     {
+        var property = await db.Properties.FirstOrDefaultAsync(p => p.Id == propertyId);
+        if (property is null)
+        {
+            return UnitSaveResult.Failure("Property was not found.");
+        }
+
+        if (property.IsRemoved)
+        {
+            return UnitSaveResult.Failure("This property has been removed and cannot receive new units.");
+        }
+
         var unitType = await db.UnitTypes.FirstOrDefaultAsync(t => t.Id == unitTypeId);
         if (unitType is null)
         {
@@ -94,7 +105,7 @@ public class UnitService(ApplicationDbContext db) : IUnitService
             return false;
         }
 
-        db.Units.Remove(unit);
+        unit.IsRemoved = true;
         await db.SaveChangesAsync();
 
         return true;

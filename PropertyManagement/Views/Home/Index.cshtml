@@ -1,8 +1,92 @@
-﻿@{
-    ViewData["Title"] = "Home Page";
+@using PropertyManagement.Domain.Entities
+@model List<Unit>
+@{
+    ViewData["Title"] = "Home";
+    var properties = (List<Property>)ViewBag.Properties;
+    var unitTypes = (List<UnitType>)ViewBag.UnitTypes;
+    var selectedPropertyId = (Guid?)ViewBag.SelectedPropertyId;
+    var selectedUnitTypeId = (Guid?)ViewBag.SelectedUnitTypeId;
+    var selectedMinBedrooms = (int?)ViewBag.SelectedMinBedrooms;
+    var selectedMinRent = (decimal?)ViewBag.SelectedMinRent;
+    var selectedMaxRent = (decimal?)ViewBag.SelectedMaxRent;
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+@section Styles {
+    <link rel="stylesheet" href="~/css/home.css" asp-append-version="true" />
+}
+
+<div class="home-hero">
+    <h1>Find your next home</h1>
+    <p class="text-muted">Units currently available for rent, across all our properties.</p>
+</div>
+
+<div class="home-filters">
+    <form method="get" asp-controller="Home" asp-action="Index" class="row g-3 align-items-end">
+        <div class="col-6 col-md-3">
+            <label class="form-label">Property</label>
+            <select name="propertyId" class="form-select">
+                <option value="">Any</option>
+                @foreach (var property in properties)
+                {
+                    <option value="@property.Id" selected="@(selectedPropertyId == property.Id)">@property.Name</option>
+                }
+            </select>
+        </div>
+        <div class="col-6 col-md-3">
+            <label class="form-label">Unit type</label>
+            <select name="unitTypeId" class="form-select">
+                <option value="">Any</option>
+                @foreach (var unitType in unitTypes)
+                {
+                    <option value="@unitType.Id" selected="@(selectedUnitTypeId == unitType.Id)">@unitType.Name</option>
+                }
+            </select>
+        </div>
+        <div class="col-6 col-md-2">
+            <label class="form-label">Bedrooms</label>
+            <select name="minBedrooms" class="form-select">
+                <option value="">Any</option>
+                @for (var i = 1; i <= 5; i++)
+                {
+                    <option value="@i" selected="@(selectedMinBedrooms == i)">@(i)@(i == 5 ? "+" : "")</option>
+                }
+            </select>
+        </div>
+        <div class="col-6 col-md-2">
+            <label class="form-label">Min rent</label>
+            <input type="number" name="minRent" class="form-control" min="0" step="50" value="@selectedMinRent" />
+        </div>
+        <div class="col-6 col-md-2">
+            <label class="form-label">Max rent</label>
+            <input type="number" name="maxRent" class="form-control" min="0" step="50" value="@selectedMaxRent" />
+        </div>
+        <div class="col-12">
+            <button type="submit" class="btn btn-home-primary">Search</button>
+        </div>
+    </form>
+</div>
+
+@if (Model.Count == 0)
+{
+    <p class="text-center text-muted my-5">No units match your filters right now.</p>
+}
+else
+{
+    <div class="row row-cols-1 row-cols-md-3 g-4 home-unit-grid">
+        @foreach (var unit in Model)
+        {
+            <div class="col">
+                <div class="unit-card">
+                    <h5>@unit.Property.Name</h5>
+                    <p class="text-muted mb-2">@unit.Property.AddressLine1, @unit.Property.City, @unit.Property.State</p>
+                    <p class="unit-card-price">@unit.MonthlyRent.ToString("C")<span>/month</span></p>
+                    <p class="mb-0">Unit @unit.UnitNumber &middot; @unit.Bedrooms bd &middot; @unit.UnitType.Name</p>
+                </div>
+            </div>
+        }
+    </div>
+}
+
+<div class="home-cta">
+    <p class="mb-0">Ready to apply? <a asp-controller="Account" asp-action="Login">Log in as an applicant</a> to start a rental application.</p>
 </div>

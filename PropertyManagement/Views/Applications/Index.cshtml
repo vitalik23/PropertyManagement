@@ -3,6 +3,4 @@
     ViewData["Title"] = "My Applications";
 }
 
-<h1>My Applications</h1>
-
-@await Component.InvokeAsync("ApplicationsGrid")
+@await Component.InvokeAsync("ApplicationsGrid", new { title = "My Applications" })

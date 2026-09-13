@@ -1,41 +1,51 @@
-@using PropertyManagement.Domain.Entities
-@model List<Unit>
+@using PropertyManagement.ViewComponents
+@model UnitsListViewModel
 
-<table class="table table-striped">
-    <thead>
-        <tr>
-            <th>Unit #</th>
-            <th>Bedrooms</th>
-            <th>Monthly rent</th>
-            <th>Unit type</th>
-            <th></th>
-        </tr>
-    </thead>
-    <tbody>
-        @if (Model.Count == 0)
-        {
-            <tr>
-                <td colspan="5" class="text-center text-muted">No units yet.</td>
-            </tr>
-        }
-        @foreach (var unit in Model)
-        {
-            <tr>
-                <td>@unit.UnitNumber</td>
-                <td>@unit.Bedrooms</td>
-                <td>@unit.MonthlyRent.ToString("C")</td>
-                <td>
-                    @unit.UnitType.Name
-                    @if (!unit.UnitType.IsActive)
-                    {
-                        <span class="badge text-bg-secondary">Inactive</span>
-                    }
-                </td>
-                <td class="text-end">
-                    <a href="#" class="btn btn-sm btn-outline-secondary" data-modal-url="/Units/Edit/@unit.Id">Edit</a>
-                    <a href="#" class="btn btn-sm btn-outline-danger" data-modal-url="/Units/Delete/@unit.Id">Remove</a>
-                </td>
-            </tr>
-        }
-    </tbody>
-</table>
+<div class="data-table-card">
+    <div class="data-table-header">
+        <h1 class="data-table-title">Units <span class="data-table-count">Total @Model.Units.Count</span></h1>
+        <div class="data-table-actions">
+            <a href="#" class="btn btn-table-primary" data-modal-url="/Units/Create?propertyId=@Model.PropertyId">Add Unit</a>
+        </div>
+    </div>
+    <div class="data-table-wrapper">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Unit #</th>
+                    <th>Bedrooms</th>
+                    <th>Monthly rent</th>
+                    <th>Unit type</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model.Units.Count == 0)
+                {
+                    <tr>
+                        <td colspan="5" class="text-center text-muted">No units yet.</td>
+                    </tr>
+                }
+                @foreach (var unit in Model.Units)
+                {
+                    <tr>
+                        <td>@unit.UnitNumber</td>
+                        <td>@unit.Bedrooms</td>
+                        <td>@unit.MonthlyRent.ToString("C")</td>
+                        <td>
+                            @unit.UnitType.Name
+                            @if (!unit.UnitType.IsActive)
+                            {
+                                <span class="status-badge status-badge-muted">Inactive</span>
+                            }
+                        </td>
+                        <td class="text-end">
+                            <a href="#" class="btn btn-sm btn-table-secondary" data-modal-url="/Units/Edit/@unit.Id">Edit</a>
+                            <a href="#" class="btn btn-sm btn-outline-danger" data-modal-url="/Units/Delete/@unit.Id">Remove</a>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
